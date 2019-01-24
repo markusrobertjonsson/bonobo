@@ -46,8 +46,8 @@ SYMBOLS = ['redsquare', 'greensquare']
 
 # The nonzero delay times (in milliseconds) to use. It is chosen randomly in every other trial (every other is 0).
 # Use [0] for no delay
-DELAY_TIMES = [5000, 10000, 20000, 40000, 60000]
-# DELAY_TIMES = [1000, 2000, 4000, 6000]
+# DELAY_TIMES = [5000, 10000, 20000, 40000, 60000]  # Use
+DELAY_TIMES = [1000, 2000, 4000, 6000]
 
 # The time (in milliseconds) that the symbol is displayed
 SYMBOL_SHOW_TIME = 2000
@@ -68,7 +68,7 @@ GO_BUTTON_DURATION = 2000
 RETENTION_TIME = 0
 
 # Width (and height) of the button, as a fraction of H/2
-GO_BUTTON_WIDTH = 0.6
+GO_BUTTON_WIDTH = 0.5
 
 # Color of the go button
 GO_BUTTON_COLOR_RGB = (200, 200, 100)
@@ -87,8 +87,6 @@ REWARDING_SEQUENCE = (SYMBOL1, SYMBOL2)
 
 # The inter-stimulus time
 INTER_STIMULUS_TIME = 100
-
-assert(NEXT_BUTTON_WIDTH >= GO_BUTTON_WIDTH), "NEXT_BUTTON_WIDTH must be >= GO_BUTTON_WIDTH in config.py."
 
 
 ###########################################

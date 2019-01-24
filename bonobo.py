@@ -2,7 +2,6 @@ import tkinter as tk
 import random
 import subprocess
 import simpleaudio
-import time
 from sys import platform
 
 import config
@@ -59,7 +58,7 @@ class Experiment():
         # MIDDLE
         self.middle_frame = tk.Frame(self.root, height=h, width=W, **frame_options)
 
-        fw = (W - self.L) / 2
+        fw = (W - h) / 2
 
         # Left
         self.middle_lframe = tk.Frame(self.middle_frame, height=h, width=fw, **frame_options)
@@ -71,7 +70,7 @@ class Experiment():
         self.middle_lframe.pack(side=tk.LEFT)
 
         # Middle
-        self.go_frame = tk.Frame(self.middle_frame, height=h, width=self.L, **frame_options)
+        self.go_frame = tk.Frame(self.middle_frame, height=h, width=h, **frame_options)
         self.go_canvas_width = config.GO_BUTTON_WIDTH * h
         self.go_canvas = tk.Canvas(self.go_frame, height=self.go_canvas_width,
                                    width=self.go_canvas_width, **canvas_options)
@@ -127,6 +126,7 @@ class Experiment():
 
         self.set_background_color(BACKGROUND_COLOR)
         self.next_displayed = False
+        self.go_displayed = False
         self.display_next()
 
     def toggle_fullscreen(self, event=None):
@@ -181,6 +181,7 @@ class Experiment():
         self.middle_rcanvas.delete(tk.ALL)
         self.next_canvas.delete(tk.ALL)
         self.next_displayed = False
+        self.go_displayed = False
 
     def show_only_next(self):
         self.clear()
@@ -190,6 +191,15 @@ class Experiment():
         self.next_canvas.create_polygon(*self.next_symbol_args, fill=NEXT_BUTTON_COLOR,
                                         outline=NEXT_BUTTON_COLOR)
         self.next_displayed = True
+
+    def show_only_go(self):
+        self.clear()
+        self.display_go()
+
+    def display_go(self):
+        self.go_canvas.create_oval(0, 0, self.go_canvas_width, self.go_canvas_width,
+                                   fill=GO_BUTTON_COLOR, outline=GO_BUTTON_COLOR)
+        self.go_displayed = True
 
     def display_symbol(self, symbol, canvas):
         L = self.L  # self.top_frame.winfo_height() * config.SYMBOL_WIDTH
@@ -232,6 +242,30 @@ class Experiment():
         assert(False)  # Must be overloaded
 
 
+class NextButtonTraining(Experiment):
+    def __init__(self):
+        super().__init__()
+
+    def start(self, event=None):
+        self.clear()
+        play_correct()
+        self.root.after(config.DELAY_AFTER_REWARD, self.show_only_next)
+
+
+class GoButtonTraining(Experiment):
+    def __init__(self):
+        super().__init__()
+        self.show_only_go()
+
+    def start(self, event=None):
+        pass
+
+    def go_clicked(self, event=None):
+        self.clear()
+        play_correct()
+        self.root.after(config.DELAY_AFTER_REWARD, self.show_only_go)
+
+
 class DMS(Experiment):
     def __init__(self):
         super().__init__()
@@ -254,13 +288,14 @@ class DMS(Experiment):
         self.root.after(display_time, self.clear)
         return symbol
 
-    def display_options(self, correct_symbol):
+    def display_options(self, correct_symbol, do_clear=True):
         incorrect_symbol = None
         found = False
         while not found:
             incorrect_symbol = random.choice(config.SYMBOLS)
             found = (incorrect_symbol != correct_symbol)
-        self.clear()
+        if do_clear:
+            self.clear()
 
         r = random.random()
         if r < 0.5:
@@ -269,8 +304,8 @@ class DMS(Experiment):
             self.display_symbol(incorrect_symbol, self.middle_rcanvas)
         else:
             self.left_is_correct = False
-            self.display_symbol(correct_symbol, self.middle_lcanvas)
-            self.display_symbol(incorrect_symbol, self.middle_rcanvas)
+            self.display_symbol(incorrect_symbol, self.middle_lcanvas)
+            self.display_symbol(correct_symbol, self.middle_rcanvas)
 
     def middle_limage_clicked(self, event=None):
         if self.left_is_correct:
@@ -295,13 +330,27 @@ class DMS(Experiment):
         self.root.after(config.BLACKOUT_TIME, self.show_only_next)
 
     def go_clicked(self, event=None):
-        assert(False)  # Not used in DMS
+        pass  # Not used in DMS
+
+
+class MS(DMS):
+    def __init__(self):
+        super().__init__()
+
+    def start(self, event=None):
+        self.clear()
+        symbol = self.display_random_symbol()
+        self.display_options(symbol, do_clear=False)
+
+    def display_random_symbol(self):
+        symbol = random.choice(config.SYMBOLS)
+        self.display_symbol(symbol, self.top_canvas)
+        return symbol
 
 
 class SequenceDiscrimination(Experiment):
     def __init__(self):
         super().__init__()
-        self.go_displayed = False
         self.go_waiting = None
 
     def start(self, event=None):
@@ -344,19 +393,6 @@ class SequenceDiscrimination(Experiment):
         self.root.after(2 * config.STIMULUS_TIME + config.INTER_STIMULUS_TIME, self.clear)
         self.is_rewarding = ((symbol1, symbol2) == config.REWARDING_SEQUENCE)
 
-    def show_only_go(self):
-        self.clear()
-        self.display_go()
-
-    def display_go(self):
-        self.go_canvas.create_oval(0, 0, self.go_canvas_width, self.go_canvas_width,
-                                   fill=GO_BUTTON_COLOR, outline=GO_BUTTON_COLOR)
-        self.go_displayed = True
-
-    def clear(self):
-        super().clear()
-        self.go_displayed = False
-
     def middle_limage_clicked(self, event=None):
         pass  # Not used in SequenceDiscrimination
 
@@ -367,7 +403,6 @@ class SequenceDiscrimination(Experiment):
 class SingleStimulusDiscrimination(Experiment):
     def __init__(self):
         super().__init__()
-        self.go_displayed = False
         self.go_waiting = None
 
     def start(self, event=None):
@@ -399,19 +434,6 @@ class SingleStimulusDiscrimination(Experiment):
         self.root.after(config.STIMULUS_TIME, self.clear)
         self.is_rewarding = (symbol == config.REWARDING_STIMULUS)
 
-    def show_only_go(self):
-        self.clear()
-        self.display_go()
-
-    def display_go(self):
-        self.go_canvas.create_oval(0, 0, self.go_canvas_width, self.go_canvas_width,
-                                   fill=GO_BUTTON_COLOR, outline=GO_BUTTON_COLOR)
-        self.go_displayed = True
-
-    def clear(self):
-        super().clear()
-        self.go_displayed = False
-
     def middle_limage_clicked(self, event=None):
         pass  # Not used in SingleStimulusDiscrimination
 
@@ -442,8 +464,10 @@ def _play(filename):
 
 
 if __name__ == '__main__':
-    # w = Experiment()
     # w = DMS()
+    # w = MS()
+    # w = NextButtonTraining()
+    w = GoButtonTraining()
     # w = SequenceDiscrimination()
-    w = SingleStimulusDiscrimination()
+    # w = SingleStimulusDiscrimination()
     w.root.mainloop()

@@ -1,7 +1,9 @@
 import tkinter as tk
 import random
-# import time
-from playsound import playsound
+import subprocess
+import simpleaudio
+import time
+from sys import platform
 
 import config
 
@@ -213,12 +215,6 @@ class Experiment():
     def display_symbol_top(self, symbol):
         self.display_symbol(symbol, self.top_canvas)
 
-    @staticmethod
-    def beep():
-        # for _ in range(5):
-        print('\a')  # beep
-        # time.sleep(0.1)
-
     def middle_limage_clicked(self, event=None):
         assert(False)  # Must be overloaded
 
@@ -290,11 +286,12 @@ class DMS(Experiment):
 
     def correct_choice(self):
         self.clear()
-        self.beep()
+        play_correct()
         self.root.after(config.DELAY_AFTER_REWARD, self.show_only_next)
 
     def incorrect_choice(self):
         self.blackout()
+        play_incorrect()
         self.root.after(config.BLACKOUT_TIME, self.show_only_next)
 
     def go_clicked(self, event=None):
@@ -322,11 +319,11 @@ class SequenceDiscrimination(Experiment):
         if self.go_displayed:
             if self.is_rewarding:
                 self.clear()
-                self.beep()
-                # self.show_only_next()
+                play_correct()
                 self.root.after(config.DELAY_AFTER_REWARD, self.show_only_next)
             else:
                 self.blackout()
+                play_incorrect()
                 self.root.after(config.BLACKOUT_TIME, self.show_only_next)
 
     def display_random_sequence(self):
@@ -388,11 +385,11 @@ class SingleStimulusDiscrimination(Experiment):
         if self.go_displayed:
             if self.is_rewarding:
                 self.clear()
-                self.beep()
-                # self.show_only_next()
+                play_correct()
                 self.root.after(config.DELAY_AFTER_REWARD, self.show_only_next)
             else:
                 self.blackout()
+                play_incorrect()
                 self.root.after(config.BLACKOUT_TIME, self.show_only_next)
 
     def display_random_stimulus(self):
@@ -422,8 +419,29 @@ class SingleStimulusDiscrimination(Experiment):
         pass  # Not used in SingleStimulusDiscrimination
 
 
+def play_correct():
+    _play(config.SOUND_CORRECT)
+
+
+def play_incorrect():
+    _play(config.SOUND_INCORRECT)
+
+
+def _play(filename):
+    if platform == "darwin":  # OSX
+        subprocess.call(['afplay', filename])
+    elif platform == "linux" or platform == "linux2":  # Linux
+        wave_obj = simpleaudio.WaveObject.from_wave_file(filename)
+        play_obj = wave_obj.play()
+        # play_obj.wait_done()
+        # print('\a')  # beep
+    elif platform == "win32":
+        print('\a')  # beep
+    else:
+        print('\a')  # beep
+
+
 if __name__ == '__main__':
-    playsound('correct.wav')
     # w = Experiment()
     # w = DMS()
     # w = SequenceDiscrimination()

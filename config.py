@@ -27,6 +27,12 @@ BLACKOUT_TIME = 5000
 # The delay (in milliseconds) after correct answer, before the next symbol is displayed
 DELAY_AFTER_REWARD = 1000
 
+# The name of the sound file to play if correct. File must be in the same directory as this file.
+SOUND_CORRECT = 'correct.wav'
+
+# The name of the sound file to play if incorrect. File must be in the same directory as this file.
+SOUND_INCORRECT = 'incorrect.wav'
+
 
 ######################################
 # Delayed matched to sample settings #
@@ -47,22 +53,12 @@ DELAY_TIMES = [5000, 10000, 20000, 40000, 60000]
 SYMBOL_SHOW_TIME = 2000
 
 
-####################################
-# Sequence discrimination settings #
-####################################
-
-# The two symbols in the sequence
-SYMBOL1 = 'redsquare'
-SYMBOL2 = 'greensquare'
-
-# The first symbol in the rewarding sequence
-REWARDING_SEQUENCE = (SYMBOL1, SYMBOL2)
+###################################
+# General discrimination settings #
+###################################
 
 # The time (in milliseconds) that each symbol in the sequence is displayed
 STIMULUS_TIME = 2000
-
-# The inter-stimulus time
-INTER_STIMULUS_TIME = 100
 
 # If button is not pressed after a sequence display, the time to wait
 # before the next sequence is displayed
@@ -76,6 +72,21 @@ GO_BUTTON_WIDTH = 0.6
 
 # Color of the go button
 GO_BUTTON_COLOR_RGB = (200, 200, 100)
+
+
+####################################
+# Sequence discrimination settings #
+####################################
+
+# The two symbols in the sequence
+SYMBOL1 = 'redsquare'
+SYMBOL2 = 'greensquare'
+
+# The first symbol in the rewarding sequence
+REWARDING_SEQUENCE = (SYMBOL1, SYMBOL2)
+
+# The inter-stimulus time
+INTER_STIMULUS_TIME = 100
 
 assert(NEXT_BUTTON_WIDTH >= GO_BUTTON_WIDTH), "NEXT_BUTTON_WIDTH must be >= GO_BUTTON_WIDTH in config.py."
 

@@ -1,3 +1,16 @@
+# The experiment to run. Must be one of the following
+# - "NextButtonTraining"
+# - "GoButtonTraining"
+# - "MatchedToSample"
+# - "DelayedMatchedToSample"
+# - "SequenceDiscrimination"
+# - "SingleStimulusDiscrimination"
+EXPERIMENT = "SequenceDiscrimination"
+
+# The subject exposed to the experiment
+SUBJECT_TAG = 1
+
+
 ####################
 # General settings #
 ####################

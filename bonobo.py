@@ -1,10 +1,14 @@
 import tkinter as tk
 import random
 import subprocess
-import simpleaudio
+import config
 from sys import platform
 
-import config
+if platform == "linux" or platform == "linux2":
+    import simpleaudio
+
+
+random.seed()
 
 BACKGROUND_COLOR = "#%02x%02x%02x" % config.BACKGROUND_COLOR_RGB
 SEPARATOR_COLOR = "#%02x%02x%02x" % config.SEPARATOR_COLOR_RGB
@@ -226,20 +230,24 @@ class Experiment():
         self.display_symbol(symbol, self.top_canvas)
 
     def middle_limage_clicked(self, event=None):
-        assert(False)  # Must be overloaded
+        pass
+        # assert(False)  # Must be overloaded
 
     def middle_rimage_clicked(self, event=None):
-        assert(False)  # Must be overloaded
+        pass
+        # assert(False)  # Must be overloaded
 
     def start(self, event=None):
-        assert(False)  # Must be overloaded
+        pass
+        # assert(False)  # Must be overloaded
 
     def next_clicked(self, event=None):
         if self.next_displayed:
             self.start()
 
     def go_clicked(self, event=None):
-        assert(False)  # Must be overloaded
+        pass
+        # assert(False)  # Must be overloaded
 
 
 class NextButtonTraining(Experiment):
@@ -266,7 +274,7 @@ class GoButtonTraining(Experiment):
         self.root.after(config.DELAY_AFTER_REWARD, self.show_only_go)
 
 
-class DMS(Experiment):
+class DelayedMatchedToSample(Experiment):
     def __init__(self):
         super().__init__()
         self.use_zero_delay = False
@@ -333,7 +341,7 @@ class DMS(Experiment):
         pass  # Not used in DMS
 
 
-class MS(DMS):
+class MatchedToSample(DelayedMatchedToSample):
     def __init__(self):
         super().__init__()
 
@@ -348,21 +356,12 @@ class MS(DMS):
         return symbol
 
 
-class SequenceDiscrimination(Experiment):
+class Discrimination(Experiment):
     def __init__(self):
         super().__init__()
-        self.go_waiting = None
-
-    def start(self, event=None):
-        self.clear()
-        self.display_random_sequence()
-        time_to_go = 2 * config.STIMULUS_TIME + config.INTER_STIMULUS_TIME + config.RETENTION_TIME
-        self.root.after(time_to_go, self.show_only_go)
-        time_to_go_away = time_to_go + config.GO_BUTTON_DURATION
-        self.go_waiting = self.root.after(time_to_go_away, self.show_only_next)
 
     def go_clicked(self, event=None):
-        if self.go_waiting is not None:
+        if self.go_waiting is not None:  # Cancel the pending job to remove the go button
             self.root.after_cancel(self.go_waiting)
             self.go_waiting = None
         if self.go_displayed:
@@ -374,6 +373,20 @@ class SequenceDiscrimination(Experiment):
                 self.blackout()
                 play_incorrect()
                 self.root.after(config.BLACKOUT_TIME, self.show_only_next)
+
+
+class SequenceDiscrimination(Discrimination):
+    def __init__(self):
+        super().__init__()
+        self.go_waiting = None
+
+    def start(self, event=None):
+        self.clear()
+        self.display_random_sequence()
+        time_to_go = 2 * config.STIMULUS_TIME + config.INTER_STIMULUS_TIME + config.RETENTION_TIME
+        self.root.after(time_to_go, self.show_only_go)
+        time_to_go_away = time_to_go + config.GO_BUTTON_DURATION
+        self.go_waiting = self.root.after(time_to_go_away, self.show_only_next)
 
     def display_random_sequence(self):
         r = random.random()
@@ -393,14 +406,8 @@ class SequenceDiscrimination(Experiment):
         self.root.after(2 * config.STIMULUS_TIME + config.INTER_STIMULUS_TIME, self.clear)
         self.is_rewarding = ((symbol1, symbol2) == config.REWARDING_SEQUENCE)
 
-    def middle_limage_clicked(self, event=None):
-        pass  # Not used in SequenceDiscrimination
 
-    def middle_rimage_clicked(self, event=None):
-        pass  # Not used in SequenceDiscrimination
-
-
-class SingleStimulusDiscrimination(Experiment):
+class SingleStimulusDiscrimination(Discrimination):
     def __init__(self):
         super().__init__()
         self.go_waiting = None
@@ -413,32 +420,12 @@ class SingleStimulusDiscrimination(Experiment):
         time_to_go_away = time_to_go + config.GO_BUTTON_DURATION
         self.go_waiting = self.root.after(time_to_go_away, self.show_only_next)
 
-    def go_clicked(self, event=None):
-        if self.go_waiting is not None:
-            self.root.after_cancel(self.go_waiting)
-            self.go_waiting = None
-        if self.go_displayed:
-            if self.is_rewarding:
-                self.clear()
-                play_correct()
-                self.root.after(config.DELAY_AFTER_REWARD, self.show_only_next)
-            else:
-                self.blackout()
-                play_incorrect()
-                self.root.after(config.BLACKOUT_TIME, self.show_only_next)
-
     def display_random_stimulus(self):
         symbol = random.choice(config.SYMBOLS)
         self.top_canvas.delete(tk.ALL)
         self.display_symbol_top(symbol)
         self.root.after(config.STIMULUS_TIME, self.clear)
         self.is_rewarding = (symbol == config.REWARDING_STIMULUS)
-
-    def middle_limage_clicked(self, event=None):
-        pass  # Not used in SingleStimulusDiscrimination
-
-    def middle_rimage_clicked(self, event=None):
-        pass  # Not used in SingleStimulusDiscrimination
 
 
 def play_correct():
@@ -454,9 +441,9 @@ def _play(filename):
         subprocess.call(['afplay', filename])
     elif platform == "linux" or platform == "linux2":  # Linux
         wave_obj = simpleaudio.WaveObject.from_wave_file(filename)
-        play_obj = wave_obj.play()
+        wave_obj.play()
+        # play_obj = wave_obj.play()
         # play_obj.wait_done()
-        # print('\a')  # beep
     elif platform == "win32":
         print('\a')  # beep
     else:
@@ -464,10 +451,25 @@ def _play(filename):
 
 
 if __name__ == '__main__':
-    # w = DMS()
-    # w = MS()
-    # w = NextButtonTraining()
-    w = GoButtonTraining()
-    # w = SequenceDiscrimination()
-    # w = SingleStimulusDiscrimination()
-    w.root.mainloop()
+    e = None
+    if config.EXPERIMENT == "NextButtonTraining":
+        e = NextButtonTraining()
+    elif config.EXPERIMENT == "GoButtonTraining":
+        e = GoButtonTraining()
+    elif config.EXPERIMENT == "MatchedToSample":
+        e = MatchedToSample()
+    elif config.EXPERIMENT == "DelayedMatchedToSample":
+        e = DelayedMatchedToSample()
+    elif config.EXPERIMENT == "SequenceDiscrimination":
+        e = SequenceDiscrimination()
+    elif config.EXPERIMENT == "SingleStimulusDiscrimination":
+        e = SingleStimulusDiscrimination()
+    else:
+        print("Error: Undefined experiment name '" + config.EXPERIMENT + "'.")
+    if e:
+        e.root.mainloop()
+
+
+class File():
+    def __init__(self, filename):
+        self.filename = filename

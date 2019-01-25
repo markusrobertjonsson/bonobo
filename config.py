@@ -1,14 +1,21 @@
-# The experiment to run. Must be one of the following
-# - "NextButtonTraining"
-# - "GoButtonTraining"
-# - "MatchedToSample"
-# - "DelayedMatchedToSample"
-# - "SequenceDiscrimination"
-# - "SingleStimulusDiscrimination"
-EXPERIMENT = "SequenceDiscrimination"
+# These abbreviations are used in the name of the result file.
+NEXT_BUTTON_TRAINING = "NBT"
+GO_BUTTON_TRAINING = "GBT"
+MATCHING_TO_SAMPLE = "MTS"
+DELAYED_MATCHING_TO_SAMPLE = "DMTS"
+SEQUENCE_DISCRIMINATION = "SeqDis"
+SINGLE_STIMULUS_DISCRIMINATION = "SSDis"
 
-# The subject exposed to the experiment
-SUBJECT_TAG = 1
+# The experiment to run. Remove the "#" before the one to run.
+# EXPERIMENT = NEXT_BUTTON_TRAINING
+# EXPERIMENT = GO_BUTTON_TRAINING
+# EXPERIMENT = MATCHING_TO_SAMPLE
+EXPERIMENT = DELAYED_MATCHING_TO_SAMPLE
+# EXPERIMENT = SEQUENCE_DISCRIMINATION
+# EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION
+
+# The subject exposed to the experiment. Used in the name of the result file.
+SUBJECT_TAG = "k"
 
 
 ####################
@@ -16,8 +23,8 @@ SUBJECT_TAG = 1
 ####################
 
 # The background screen color in reg, green, blue (each ranging from 0 to 255)
-# BACKGROUND_COLOR_RGB = (0, 0, 0)
-BACKGROUND_COLOR_RGB = (64, 204, 255)
+BACKGROUND_COLOR_RGB = (0, 0, 0)
+# BACKGROUND_COLOR_RGB = (64, 204, 255)
 
 # The color of the separator
 SEPARATOR_COLOR_RGB = (255, 255, 255)
@@ -47,9 +54,9 @@ SOUND_CORRECT = 'correct.wav'
 SOUND_INCORRECT = 'incorrect.wav'
 
 
-######################################
-# Delayed matched to sample settings #
-######################################
+#######################################
+# Delayed matching to sample settings #
+#######################################
 
 # The symbols to use
 SYMBOLS = ['redsquare', 'greensquare']

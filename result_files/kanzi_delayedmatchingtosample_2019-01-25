@@ -1,0 +1,12 @@
+23:08:48:162596,1,6000,redsquare,redsquare,greensquare,redsquare,correct,1.6048712730407715
+23:08:54:809377,2,0,redsquare,redsquare,greensquare,redsquare,correct,0.5638725757598877
+23:09:03:899757,3,4000,redsquare,redsquare,greensquare,redsquare,correct,0.7263095378875732
+23:09:10:192111,4,0,redsquare,redsquare,greensquare,redsquare,correct,1.5945353507995605
+23:09:16:16523,5,1000,redsquare,redsquare,greensquare,redsquare,correct,0.6103830337524414
+23:09:20:320203,6,0,greensquare,redsquare,greensquare,redsquare,correct,0.4023864269256592
+23:12:35:115425,1,4000,redsquare,greensquare,redsquare,greensquare,False,0.47577953338623047
+23:12:44:434160,2,0,redsquare,redsquare,greensquare,redsquare,True,1.3301787376403809
+23:12:49:875155,3,1000,greensquare,redsquare,greensquare,redsquare,False,0.3379204273223877
+23:12:59:26431,4,0,redsquare,greensquare,redsquare,greensquare,False,0.9143564701080322
+23:13:09:83105,5,2000,greensquare,redsquare,greensquare,redsquare,False,0.40334224700927734
+23:13:17:267119,6,0,redsquare,redsquare,greensquare,redsquare,True,0.5712282657623291

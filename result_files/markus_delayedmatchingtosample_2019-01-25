@@ -1,0 +1,12 @@
+timestamp,delay,sample,left item,right item,response,correct,response time
+00:09:49:402570,1000,redsquare,greensquare,redsquare,greensquare,False,0.7737720012664795
+00:11:25:812259,6000,greensquare,greensquare,redsquare,greensquare,True,0.4620068073272705
+00:11:30:671553,0,greensquare,greensquare,redsquare,greensquare,True,0.6415925025939941
+00:11:43:321136,4000,greensquare,redsquare,greensquare,redsquare,False,0.8670415878295898
+00:11:52:65400,0,redsquare,greensquare,redsquare,greensquare,False,0.8030390739440918
+00:11:58:33132,1000,greensquare,greensquare,redsquare,greensquare,True,1.0587272644042969
+08:48:57:727849,0,redsquare,greensquare,redsquare,greensquare,False,0.7679531574249268
+08:49:17:946496,6000,redsquare,greensquare,redsquare,greensquare,False,1.3786044120788574
+08:49:46:59593,0,greensquare,greensquare,redsquare,greensquare,True,0.4616091251373291
+08:50:00:651168,6000,redsquare,redsquare,greensquare,redsquare,True,0.8240680694580078
+08:50:05:705716,0,redsquare,greensquare,redsquare,greensquare,False,1.0902519226074219

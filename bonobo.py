@@ -2,7 +2,11 @@ import tkinter as tk
 import random
 import subprocess
 import config
+import csv
+import time
+import os
 from sys import platform
+from datetime import datetime
 
 if platform == "linux" or platform == "linux2":
     import simpleaudio
@@ -24,11 +28,14 @@ frame_options = dict()  # For debugging frame positioning
 
 canvas_options = {'bd': 0, 'highlightthickness': 0}
 
-TOL = 0.45
+TOL = 0.95
 
 
 class Experiment():
     def __init__(self):
+        filename = self.result_filename()
+        self.result_file = ResultFile(filename)
+
         self.root = tk.Tk()
 
         W = self.root.winfo_screenwidth() * TOL
@@ -43,7 +50,7 @@ class Experiment():
         self.is_fullscreen = False
         self.root.bind("<F11>", self.toggle_fullscreen)
         self.root.bind("<Escape>", self.end_fullscreen)
-        self.root.bind("<F5>", self.start)
+        self.root.bind("<F5>", self.start_trial)
 
         # TOP
         self.top_frame = tk.Frame(self.root, height=h, width=W, **frame_options)
@@ -229,6 +236,10 @@ class Experiment():
     def display_symbol_top(self, symbol):
         self.display_symbol(symbol, self.top_canvas)
 
+    def next_clicked(self, event=None):
+        if self.next_displayed:
+            self.start_trial()
+
     def middle_limage_clicked(self, event=None):
         pass
         # assert(False)  # Must be overloaded
@@ -237,27 +248,46 @@ class Experiment():
         pass
         # assert(False)  # Must be overloaded
 
-    def start(self, event=None):
+    def start_trial(self, event=None):
         pass
         # assert(False)  # Must be overloaded
-
-    def next_clicked(self, event=None):
-        if self.next_displayed:
-            self.start()
 
     def go_clicked(self, event=None):
         pass
         # assert(False)  # Must be overloaded
+
+    def result_filename(self):
+        """
+        Return the file name of the result file.
+        """
+        experiment = self.experiment_abbreviation()
+        subject = config.SUBJECT_TAG.lower()
+        now = datetime.now()
+        year = str(now.year)
+        month = str(now.month)
+        if now.month < 10:
+            month = "0" + month
+        day = str(now.day)
+        if now.day < 10:
+            day = "0" + day
+        date = year + "-" + month + "-" + day
+        return subject + "_" + experiment + "_" + date
+
+    def experiment_abbreviation(self):
+        assert(False)  # Must be overloaded
 
 
 class NextButtonTraining(Experiment):
     def __init__(self):
         super().__init__()
 
-    def start(self, event=None):
+    def start_trial(self, event=None):
         self.clear()
         play_correct()
         self.root.after(config.DELAY_AFTER_REWARD, self.show_only_next)
+
+    def experiment_abbreviation(self):
+        return config.NEXT_BUTTON_TRAINING
 
 
 class GoButtonTraining(Experiment):
@@ -265,7 +295,7 @@ class GoButtonTraining(Experiment):
         super().__init__()
         self.show_only_go()
 
-    def start(self, event=None):
+    def start_trial(self, event=None):
         pass
 
     def go_clicked(self, event=None):
@@ -273,28 +303,44 @@ class GoButtonTraining(Experiment):
         play_correct()
         self.root.after(config.DELAY_AFTER_REWARD, self.show_only_go)
 
+    def experiment_abbreviation(self):
+        return config.GO_BUTTON_TRAINING
 
-class DelayedMatchedToSample(Experiment):
+
+class DelayedMatchingToSample(Experiment):
     def __init__(self):
         super().__init__()
         self.use_zero_delay = False
 
-    def start(self, event=None):
+        # The last delay time used
+        self.delay_time = None
+
+        # The last sample displayed
+        self.sample = None
+
+        # The last displayed left option
+        self.left_symbol = None
+
+        # The last displayed right option
+        self.right_symbol = None
+
+    def start_trial(self, event=None):
         if self.use_zero_delay:
-            delay_time = 0
+            self.delay_time = 0
         else:
-            delay_time = random.choice(config.DELAY_TIMES)
+            self.delay_time = random.choice(config.DELAY_TIMES)
         self.use_zero_delay = not self.use_zero_delay
         self.clear()
-        symbol = self.display_random_symbol(config.SYMBOL_SHOW_TIME)
-        self.root.after(config.SYMBOL_SHOW_TIME + delay_time, self.display_options, symbol)
+        self.display_random_symbol(config.SYMBOL_SHOW_TIME)
+        self.root.after(config.SYMBOL_SHOW_TIME + self.delay_time, self.display_options,
+                        self.sample)
 
     def display_random_symbol(self, display_time):
-        symbol = random.choice(config.SYMBOLS)
+        self.sample = random.choice(config.SYMBOLS)
         self.top_canvas.delete(tk.ALL)
-        self.display_symbol(symbol, self.top_canvas)
+        self.display_symbol(self.sample, self.top_canvas)
         self.root.after(display_time, self.clear)
-        return symbol
+        # return symbol
 
     def display_options(self, correct_symbol, do_clear=True):
         incorrect_symbol = None
@@ -310,22 +356,50 @@ class DelayedMatchedToSample(Experiment):
             self.left_is_correct = True
             self.display_symbol(correct_symbol, self.middle_lcanvas)
             self.display_symbol(incorrect_symbol, self.middle_rcanvas)
+            self.left_symbol = correct_symbol
+            self.right_symbol = incorrect_symbol
         else:
             self.left_is_correct = False
             self.display_symbol(incorrect_symbol, self.middle_lcanvas)
             self.display_symbol(correct_symbol, self.middle_rcanvas)
+            self.left_symbol = incorrect_symbol
+            self.right_symbol = correct_symbol
+        self.tic = time.time()
 
     def middle_limage_clicked(self, event=None):
         if self.left_is_correct:
             self.correct_choice()
         else:
             self.incorrect_choice()
+        self.write_file(self.left_is_correct)
 
     def middle_rimage_clicked(self, event=None):
         if self.left_is_correct:
             self.incorrect_choice()
         else:
             self.correct_choice()
+        self.write_file(not self.left_is_correct)
+
+    def write_file(self, is_correct):
+        toc = time.time()
+        response_time = toc - self.tic
+        headers = ["timestamp",
+                   "delay",
+                   "sample",
+                   "left item",
+                   "right item",
+                   "response",
+                   "correct",
+                   "response time"]
+        values = [timestamp(),
+                  self.delay_time,
+                  self.sample,
+                  self.left_symbol,
+                  self.right_symbol,
+                  self.left_symbol,
+                  is_correct,
+                  response_time]
+        self.result_file.write(headers, values)
 
     def correct_choice(self):
         self.clear()
@@ -340,12 +414,15 @@ class DelayedMatchedToSample(Experiment):
     def go_clicked(self, event=None):
         pass  # Not used in DMS
 
+    def experiment_abbreviation(self):
+        return config.DELAYED_MATCHING_TO_SAMPLE
 
-class MatchedToSample(DelayedMatchedToSample):
+
+class MatchingToSample(DelayedMatchingToSample):
     def __init__(self):
         super().__init__()
 
-    def start(self, event=None):
+    def start_trial(self, event=None):
         self.clear()
         symbol = self.display_random_symbol()
         self.display_options(symbol, do_clear=False)
@@ -354,6 +431,9 @@ class MatchedToSample(DelayedMatchedToSample):
         symbol = random.choice(config.SYMBOLS)
         self.display_symbol(symbol, self.top_canvas)
         return symbol
+
+    def experiment_abbreviation(self):
+        return config.MATCHING_TO_SAMPLE
 
 
 class Discrimination(Experiment):
@@ -379,8 +459,13 @@ class SequenceDiscrimination(Discrimination):
     def __init__(self):
         super().__init__()
         self.go_waiting = None
+        all_sequences = [(config.SYMBOL1, config.SYMBOL1),
+                         (config.SYMBOL1, config.SYMBOL2),
+                         (config.SYMBOL2, config.SYMBOL1),
+                         (config.SYMBOL2, config.SYMBOL2)]
+        self.nonrewarding_sequences = [s for s in all_sequences if s != config.REWARDING_SEQUENCE]
 
-    def start(self, event=None):
+    def start_trial(self, event=None):
         self.clear()
         self.display_random_sequence()
         time_to_go = 2 * config.STIMULUS_TIME + config.INTER_STIMULUS_TIME + config.RETENTION_TIME
@@ -390,14 +475,10 @@ class SequenceDiscrimination(Discrimination):
 
     def display_random_sequence(self):
         r = random.random()
-        if r < 0.25:
-            symbol1, symbol2 = config.SYMBOL1, config.SYMBOL1
-        elif r < 0.5:
-            symbol1, symbol2 = config.SYMBOL1, config.SYMBOL2
-        elif r < 0.75:
-            symbol1, symbol2 = config.SYMBOL2, config.SYMBOL1
+        if r < 0.5:
+            symbol1, symbol2 = config.REWARDING_SEQUENCE
         else:
-            symbol1, symbol2 = config.SYMBOL2, config.SYMBOL2
+            symbol1, symbol2 = random.choice(self.nonrewarding_sequences)
         self.top_canvas.delete(tk.ALL)
         self.display_symbol_top(symbol1)
         self.root.after(config.STIMULUS_TIME, self.clear)
@@ -406,13 +487,16 @@ class SequenceDiscrimination(Discrimination):
         self.root.after(2 * config.STIMULUS_TIME + config.INTER_STIMULUS_TIME, self.clear)
         self.is_rewarding = ((symbol1, symbol2) == config.REWARDING_SEQUENCE)
 
+    def experiment_abbreviation(self):
+        return config.SEQUENCE_DISCRIMINATION
+
 
 class SingleStimulusDiscrimination(Discrimination):
     def __init__(self):
         super().__init__()
         self.go_waiting = None
 
-    def start(self, event=None):
+    def start_trial(self, event=None):
         self.clear()
         self.display_random_stimulus()
         time_to_go = config.STIMULUS_TIME + config.RETENTION_TIME
@@ -426,6 +510,9 @@ class SingleStimulusDiscrimination(Discrimination):
         self.display_symbol_top(symbol)
         self.root.after(config.STIMULUS_TIME, self.clear)
         self.is_rewarding = (symbol == config.REWARDING_STIMULUS)
+
+    def experiment_abbreviation(self):
+        return config.SINGLE_STIMULUS_DISCRIMINATION
 
 
 def play_correct():
@@ -450,26 +537,56 @@ def _play(filename):
         print('\a')  # beep
 
 
+def timestamp():
+    unow = datetime.utcnow()
+    hour = str(unow.hour)
+    if unow.hour < 10:
+        hour = "0" + hour
+    minute = str(unow.minute)
+    if unow.minute < 10:
+        minute = "0" + minute
+    second = str(unow.second)
+    if unow.second < 10:
+        second = "0" + second
+    microsecond = str(unow.microsecond)
+    return hour + ":" + minute + ":" + second + ":" + microsecond
+
+
+class ResultFile():
+    def __init__(self, filename):
+        self.filename = filename
+
+    def write(self, headers, values):
+        path_and_file = "./result_files/" + self.filename
+
+        if os.path.exists(path_and_file):
+            write_headers = (os.path.getsize(path_and_file) == 0)
+        else:
+            write_headers = True
+
+        file = open(path_and_file, 'a', newline='')
+        with file as csvfile:
+            w = csv.writer(csvfile, quotechar='"', quoting=csv.QUOTE_MINIMAL, escapechar=None)
+            if write_headers:
+                w.writerow(headers)
+            w.writerow(values)
+
+
 if __name__ == '__main__':
     e = None
-    if config.EXPERIMENT == "NextButtonTraining":
+    if config.EXPERIMENT == config.NEXT_BUTTON_TRAINING:
         e = NextButtonTraining()
-    elif config.EXPERIMENT == "GoButtonTraining":
+    elif config.EXPERIMENT == config.GO_BUTTON_TRAINING:
         e = GoButtonTraining()
-    elif config.EXPERIMENT == "MatchedToSample":
-        e = MatchedToSample()
-    elif config.EXPERIMENT == "DelayedMatchedToSample":
-        e = DelayedMatchedToSample()
-    elif config.EXPERIMENT == "SequenceDiscrimination":
+    elif config.EXPERIMENT == config.MATCHING_TO_SAMPLE:
+        e = MatchingToSample()
+    elif config.EXPERIMENT == config.DELAYED_MATCHING_TO_SAMPLE:
+        e = DelayedMatchingToSample()
+    elif config.EXPERIMENT == config.SEQUENCE_DISCRIMINATION:
         e = SequenceDiscrimination()
-    elif config.EXPERIMENT == "SingleStimulusDiscrimination":
+    elif config.EXPERIMENT == config.SINGLE_STIMULUS_DISCRIMINATION:
         e = SingleStimulusDiscrimination()
     else:
         print("Error: Undefined experiment name '" + config.EXPERIMENT + "'.")
     if e:
         e.root.mainloop()
-
-
-class File():
-    def __init__(self, filename):
-        self.filename = filename

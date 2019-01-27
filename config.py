@@ -2,20 +2,22 @@
 NEXT_BUTTON_TRAINING = "NBT"
 GO_BUTTON_TRAINING = "GBT"
 MATCHING_TO_SAMPLE = "MTS"
+ZERO_DELAY_MATCHING_TO_SAMPLE = "ZDMTS"
 DELAYED_MATCHING_TO_SAMPLE = "DMTS"
 SEQUENCE_DISCRIMINATION = "SeqDis"
 SINGLE_STIMULUS_DISCRIMINATION = "SSDis"
 
 # The experiment to run. Remove the "#" before the one to run.
 # EXPERIMENT = NEXT_BUTTON_TRAINING
-# EXPERIMENT = GO_BUTTON_TRAINING
 # EXPERIMENT = MATCHING_TO_SAMPLE
-EXPERIMENT = DELAYED_MATCHING_TO_SAMPLE
+# EXPERIMENT = ZERO_DELAY_MATCHING_TO_SAMPLE
+# EXPERIMENT = DELAYED_MATCHING_TO_SAMPLE
+# EXPERIMENT = GO_BUTTON_TRAINING
+EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION
 # EXPERIMENT = SEQUENCE_DISCRIMINATION
-# EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION
 
 # The subject exposed to the experiment. Used in the name of the result file.
-SUBJECT_TAG = "k"
+SUBJECT_TAG = "markus"
 
 
 ####################
@@ -58,16 +60,15 @@ SOUND_INCORRECT = 'incorrect.wav'
 # Delayed matching to sample settings #
 #######################################
 
-# The symbols to use
-SYMBOLS = ['redsquare', 'greensquare']
-# SYMBOLS = ['redtriangle', 'bluecircle', 'greensquare',
-#            'bluetriangle', 'greencircle', 'redsquare',
-#            'greentriangle', 'redcircle', 'bluesquare']
+# The symbols to use. Shapes to choose from:
+# 'redtriangle', 'bluecircle', 'greensquare', 'bluetriangle', 'greencircle', 'redsquare',
+# 'greentriangle', 'redcircle', 'bluesquare'
+SYMBOLS_MTS = ['redsquare', 'greensquare']
 
-# The nonzero delay times (in milliseconds) to use. It is chosen randomly in every other trial (every other is 0).
-# Use [0] for no delay
-# DELAY_TIMES = [5000, 10000, 20000, 40000, 60000]  # Use
-DELAY_TIMES = [1000, 2000, 4000, 6000]
+# The nonzero delay times (in milliseconds) to use. It is chosen randomly in every other
+# trial (and every other is 0). Use [0] for no delay.
+DELAY_TIMES = [5000, 10000, 20000, 40000, 60000]  # Use
+# DELAY_TIMES = [1000, 2000, 4000, 6000]
 
 # The time (in milliseconds) that the symbol is displayed
 SYMBOL_SHOW_TIME = 2000
@@ -88,7 +89,7 @@ GO_BUTTON_DURATION = 2000
 RETENTION_TIME = 0
 
 # Width (and height) of the button, as a fraction of H/2
-GO_BUTTON_WIDTH = 0.5
+GO_BUTTON_WIDTH = 0.65
 
 # Color of the go button
 GO_BUTTON_COLOR_RGB = (200, 200, 100)
@@ -112,6 +113,6 @@ INTER_STIMULUS_TIME = 100
 ###########################################
 # Single stimulus discrimination settings #
 ###########################################
-SYMBOLS = ['redsquare', 'greensquare']
+SYMBOLS_SS = ['redsquare', 'greensquare']
 
 REWARDING_STIMULUS = 'redsquare'

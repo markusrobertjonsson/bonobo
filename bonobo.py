@@ -7,6 +7,7 @@ import time
 import os
 from sys import platform
 from datetime import datetime
+from math import sqrt
 
 if platform == "linux" or platform == "linux2":
     import simpleaudio
@@ -28,14 +29,30 @@ frame_options = dict()  # For debugging frame positioning
 
 canvas_options = {'bd': 0, 'highlightthickness': 0}
 
-TOL = 0.95
+TOL = 0.99
+TIMETOL = 3  # Round delay times to nearest millisecond
 
 
 class Experiment():
     def __init__(self):
         filename = self.result_filename()
         self.result_file = ResultFile(filename)
+        self.trial_cnt = 0
 
+        # A list of the last 20 trials, 0 means unuccessful, 1 means successful
+        self.success_list = []
+
+        # The success frequency of the last 20 rounds
+        self.success_frequency = 0
+
+        self._make_widgets()
+
+        self.set_background_color(BACKGROUND_COLOR)
+        self.next_displayed = False
+        self.go_displayed = False
+        self.display_next()
+
+    def _make_widgets(self):
         self.root = tk.Tk()
 
         W = self.root.winfo_screenwidth() * TOL
@@ -135,11 +152,6 @@ class Experiment():
         self.next_frame.pack_propagate(False)
         self.next_frame.pack(expand=True, side=tk.TOP)
 
-        self.set_background_color(BACKGROUND_COLOR)
-        self.next_displayed = False
-        self.go_displayed = False
-        self.display_next()
-
     def toggle_fullscreen(self, event=None):
         self.is_fullscreen = not self.is_fullscreen  # Just toggling the boolean
         self.root.attributes("-fullscreen", self.is_fullscreen)
@@ -208,26 +220,32 @@ class Experiment():
         self.display_go()
 
     def display_go(self):
-        self.go_canvas.create_oval(0, 0, self.go_canvas_width, self.go_canvas_width,
-                                   fill=GO_BUTTON_COLOR, outline=GO_BUTTON_COLOR)
+        L = self.go_canvas_width * 0.99
+        self.go_canvas.create_oval(0, 0, L, L, fill=GO_BUTTON_COLOR, outline=GO_BUTTON_COLOR)
         self.go_displayed = True
 
     def display_symbol(self, symbol, canvas):
-        L = self.L  # self.top_frame.winfo_height() * config.SYMBOL_WIDTH
+        L = self.L * 0.99  # self.top_frame.winfo_height() * config.SYMBOL_WIDTH
         if symbol == 'redtriangle':
-            canvas.create_polygon(0, 0, L, L, L, 0, fill='red', tags="shape")
+            S = sqrt(3) / 2
+            canvas.create_polygon(0, L * (S + 1) / 2, L, L * (S + 1) / 2, L / 2, L * (1 - S) / 2,
+                                  fill='red', tags="shape")
         elif symbol == 'bluecircle':
             canvas.create_oval(0, 0, L, L, fill='blue', tags="shape")
         elif symbol == 'greensquare':
             canvas.create_rectangle(0, 0, L, L, fill='green', tags="shape")
         elif symbol == 'bluetriangle':
-            canvas.create_polygon(0, 0, L, L, L, 0, fill='blue', tags="shape")
+            S = sqrt(3) / 2
+            canvas.create_polygon(0, L * (S + 1) / 2, L, L * (S + 1) / 2, L / 2, L * (1 - S) / 2,
+                                  fill='blue', tags="shape")
         elif symbol == 'greencircle':
             canvas.create_oval(0, 0, L, L, fill='green', tags="shape")
         elif symbol == 'redsquare':
             canvas.create_rectangle(0, 0, L, L, fill='red', tags="shape")
         elif symbol == 'greentriangle':
-            canvas.create_polygon(0, 0, L, L, L, 0, fill='green', tags="shape")
+            S = sqrt(3) / 2
+            canvas.create_polygon(0, L * (S + 1) / 2, L, L * (S + 1) / 2, L / 2, L * (1 - S) / 2,
+                                  fill='green', tags="shape")
         elif symbol == 'redcircle':
             canvas.create_oval(0, 0, L, L, fill='red', tags="shape")
         elif symbol == 'bluesquare':
@@ -238,6 +256,7 @@ class Experiment():
 
     def next_clicked(self, event=None):
         if self.next_displayed:
+            self.trial_cnt += 1
             self.start_trial()
 
     def middle_limage_clicked(self, event=None):
@@ -262,16 +281,17 @@ class Experiment():
         """
         experiment = self.experiment_abbreviation()
         subject = config.SUBJECT_TAG.lower()
-        now = datetime.now()
-        year = str(now.year)
-        month = str(now.month)
-        if now.month < 10:
-            month = "0" + month
-        day = str(now.day)
-        if now.day < 10:
-            day = "0" + day
-        date = year + "-" + month + "-" + day
-        return subject + "_" + experiment + "_" + date
+        date = datestamp()
+        return subject + "_" + experiment + "_" + date + ".csv"
+
+    def update_success_frequency(self, is_correct):
+        if is_correct:
+            self.success_list.append(1)
+        else:
+            self.success_list.append(0)
+        if len(self.success_list) > 20:
+            self.success_list.pop(0)
+        self.success_frequency = sum(self.success_list) / len(self.success_list)
 
     def experiment_abbreviation(self):
         assert(False)  # Must be overloaded
@@ -280,11 +300,46 @@ class Experiment():
 class NextButtonTraining(Experiment):
     def __init__(self):
         super().__init__()
+        self.tic = time.time()
 
     def start_trial(self, event=None):
+        self.write_to_file()
         self.clear()
         play_correct()
         self.root.after(config.DELAY_AFTER_REWARD, self.show_only_next)
+
+    def show_only_next(self):
+        super().show_only_next()
+        self.tic = time.time()
+
+    def write_to_file(self):
+        headers = ["subject",
+                   "experiment",
+                   "date",
+                   "timestamp",
+                   "trial",
+                   "response_time",
+                   "BACKGROUND_COLOR",
+                   "SEPARATOR_COLOR",
+                   "NEXT_BUTTON_COLOR",
+                   "NEXT_BUTTON_WIDTH",
+                   "SOUND_CORRECT"]
+
+        toc = time.time()
+        response_time = round(toc - self.tic, TIMETOL)
+        values = [config.SUBJECT_TAG,
+                  self.experiment_abbreviation(),
+                  datestamp(),
+                  timestamp(),
+                  self.trial_cnt,
+                  response_time,
+                  BACKGROUND_COLOR,
+                  SEPARATOR_COLOR,
+                  NEXT_BUTTON_COLOR,
+                  config.NEXT_BUTTON_WIDTH,
+                  config.SOUND_CORRECT]
+
+        self.result_file.write(headers, values)
 
     def experiment_abbreviation(self):
         return config.NEXT_BUTTON_TRAINING
@@ -295,13 +350,49 @@ class GoButtonTraining(Experiment):
         super().__init__()
         self.show_only_go()
 
+    def show_only_go(self):
+        super().show_only_go()
+        self.tic = time.time()
+
     def start_trial(self, event=None):
         pass
 
     def go_clicked(self, event=None):
-        self.clear()
-        play_correct()
-        self.root.after(config.DELAY_AFTER_REWARD, self.show_only_go)
+        if self.go_displayed:
+            self.trial_cnt += 1
+            self.write_to_file()
+            self.clear()
+            play_correct()
+            self.root.after(config.DELAY_AFTER_REWARD, self.show_only_go)
+
+    def write_to_file(self):
+        headers = ["subject",
+                   "experiment",
+                   "date",
+                   "timestamp",
+                   "trial",
+                   "response_time",
+                   "BACKGROUND_COLOR",
+                   "SEPARATOR_COLOR",
+                   "NEXT_BUTTON_COLOR",
+                   "NEXT_BUTTON_WIDTH",
+                   "SOUND_CORRECT"]
+
+        toc = time.time()
+        response_time = round(toc - self.tic, TIMETOL)
+        values = [config.SUBJECT_TAG,
+                  self.experiment_abbreviation(),
+                  datestamp(),
+                  timestamp(),
+                  self.trial_cnt,
+                  response_time,
+                  BACKGROUND_COLOR,
+                  SEPARATOR_COLOR,
+                  NEXT_BUTTON_COLOR,
+                  config.NEXT_BUTTON_WIDTH,
+                  config.SOUND_CORRECT]
+
+        self.result_file.write(headers, values)
 
     def experiment_abbreviation(self):
         return config.GO_BUTTON_TRAINING
@@ -336,7 +427,7 @@ class DelayedMatchingToSample(Experiment):
                         self.sample)
 
     def display_random_symbol(self, display_time):
-        self.sample = random.choice(config.SYMBOLS)
+        self.sample = random.choice(config.SYMBOLS_MTS)
         self.top_canvas.delete(tk.ALL)
         self.display_symbol(self.sample, self.top_canvas)
         self.root.after(display_time, self.clear)
@@ -346,7 +437,7 @@ class DelayedMatchingToSample(Experiment):
         incorrect_symbol = None
         found = False
         while not found:
-            incorrect_symbol = random.choice(config.SYMBOLS)
+            incorrect_symbol = random.choice(config.SYMBOLS_MTS)
             found = (incorrect_symbol != correct_symbol)
         if do_clear:
             self.clear()
@@ -367,38 +458,77 @@ class DelayedMatchingToSample(Experiment):
         self.tic = time.time()
 
     def middle_limage_clicked(self, event=None):
+        is_correct = self.left_is_correct
         if self.left_is_correct:
             self.correct_choice()
         else:
             self.incorrect_choice()
-        self.write_file(self.left_is_correct)
+        self.write_to_file(self.left_symbol, is_correct)
 
     def middle_rimage_clicked(self, event=None):
+        is_correct = not self.left_is_correct
         if self.left_is_correct:
             self.incorrect_choice()
         else:
             self.correct_choice()
-        self.write_file(not self.left_is_correct)
+        self.write_to_file(self.right_symbol, is_correct)
 
-    def write_file(self, is_correct):
-        toc = time.time()
-        response_time = toc - self.tic
-        headers = ["timestamp",
+    def write_to_file(self, symbol_clicked, is_correct):
+        self.update_success_frequency(is_correct)
+        headers = ["freq_correct",
+                   "subject",
+                   "experiment",
+                   "date",
+                   "timestamp",
+                   "trial",
                    "delay",
                    "sample",
-                   "left item",
-                   "right item",
+                   "left_item",
+                   "right_item",
                    "response",
-                   "correct",
-                   "response time"]
-        values = [timestamp(),
+                   "is_correct",
+                   "response_time",
+                   "BACKGROUND_COLOR",
+                   "SEPARATOR_COLOR",
+                   "NEXT_BUTTON_COLOR",
+                   "BLACKOUT_COLOR",
+                   "SYMBOL_WIDTH",
+                   "NEXT_BUTTON_WIDTH",
+                   "BLACKOUT_TIME",
+                   "DELAY_AFTER_REWARD",
+                   "SOUND_CORRECT",
+                   "SOUND_INCORRECT",
+                   "DELAY_TIMES",
+                   "SYMBOL_SHOW_TIME"]
+
+        toc = time.time()
+        response_time = round(toc - self.tic, TIMETOL)
+        values = [self.success_frequency,
+                  config.SUBJECT_TAG,
+                  self.experiment_abbreviation(),
+                  datestamp(),
+                  timestamp(),
+                  self.trial_cnt,
                   self.delay_time,
                   self.sample,
                   self.left_symbol,
                   self.right_symbol,
-                  self.left_symbol,
+                  symbol_clicked,
                   is_correct,
-                  response_time]
+                  response_time,
+                  BACKGROUND_COLOR,
+                  SEPARATOR_COLOR,
+                  NEXT_BUTTON_COLOR,
+                  BLACKOUT_COLOR,
+                  config.SYMBOL_WIDTH,
+                  config.NEXT_BUTTON_WIDTH,
+                  config.BLACKOUT_TIME,
+                  config.DELAY_AFTER_REWARD,
+                  config.SOUND_CORRECT,
+                  config.SOUND_INCORRECT,
+                  config.DELAY_TIMES,
+                  config.SYMBOL_SHOW_TIME]
+
         self.result_file.write(headers, values)
 
     def correct_choice(self):
@@ -418,19 +548,33 @@ class DelayedMatchingToSample(Experiment):
         return config.DELAYED_MATCHING_TO_SAMPLE
 
 
-class MatchingToSample(DelayedMatchingToSample):
+class ZeroDelayMatchingToSample(DelayedMatchingToSample):
     def __init__(self):
         super().__init__()
+        self.delay_time = 0
 
     def start_trial(self, event=None):
         self.clear()
-        symbol = self.display_random_symbol()
-        self.display_options(symbol, do_clear=False)
+        self.display_random_symbol(config.SYMBOL_SHOW_TIME)
+        self.root.after(config.SYMBOL_SHOW_TIME, self.display_options, self.sample)
+
+    def experiment_abbreviation(self):
+        return config.ZERO_DELAY_MATCHING_TO_SAMPLE
+
+
+class MatchingToSample(DelayedMatchingToSample):
+    def __init__(self):
+        super().__init__()
+        self.delay_time = 0
+
+    def start_trial(self, event=None):
+        self.clear()
+        self.display_random_symbol()
+        self.display_options(self.sample, do_clear=False)
 
     def display_random_symbol(self):
-        symbol = random.choice(config.SYMBOLS)
-        self.display_symbol(symbol, self.top_canvas)
-        return symbol
+        self.sample = random.choice(config.SYMBOLS_MTS)
+        self.display_symbol(self.sample, self.top_canvas)
 
     def experiment_abbreviation(self):
         return config.MATCHING_TO_SAMPLE
@@ -439,12 +583,23 @@ class MatchingToSample(DelayedMatchingToSample):
 class Discrimination(Experiment):
     def __init__(self):
         super().__init__()
+        self.go_waiting = None
+
+    def show_only_go(self):
+        super().show_only_go()
+        self.tic = time.time()
+
+    def show_only_next(self):
+        super().show_only_next()
+        if self.go_waiting is not None:
+            self.write_to_file("nogo", not self.is_rewarding)
 
     def go_clicked(self, event=None):
         if self.go_waiting is not None:  # Cancel the pending job to remove the go button
             self.root.after_cancel(self.go_waiting)
             self.go_waiting = None
         if self.go_displayed:
+            self.write_to_file("go", self.is_rewarding)
             if self.is_rewarding:
                 self.clear()
                 play_correct()
@@ -458,7 +613,6 @@ class Discrimination(Experiment):
 class SequenceDiscrimination(Discrimination):
     def __init__(self):
         super().__init__()
-        self.go_waiting = None
         all_sequences = [(config.SYMBOL1, config.SYMBOL1),
                          (config.SYMBOL1, config.SYMBOL2),
                          (config.SYMBOL2, config.SYMBOL1),
@@ -476,16 +630,80 @@ class SequenceDiscrimination(Discrimination):
     def display_random_sequence(self):
         r = random.random()
         if r < 0.5:
-            symbol1, symbol2 = config.REWARDING_SEQUENCE
+            self.stimulus1, self.stimulus2 = config.REWARDING_SEQUENCE
         else:
-            symbol1, symbol2 = random.choice(self.nonrewarding_sequences)
+            self.stimulus1, self.stimulus2 = random.choice(self.nonrewarding_sequences)
         self.top_canvas.delete(tk.ALL)
-        self.display_symbol_top(symbol1)
+        self.display_symbol_top(self.stimulus1)
         self.root.after(config.STIMULUS_TIME, self.clear)
         self.root.after(config.STIMULUS_TIME + config.INTER_STIMULUS_TIME,
-                        self.display_symbol_top, symbol2)
+                        self.display_symbol_top, self.stimulus2)
         self.root.after(2 * config.STIMULUS_TIME + config.INTER_STIMULUS_TIME, self.clear)
-        self.is_rewarding = ((symbol1, symbol2) == config.REWARDING_SEQUENCE)
+        self.is_rewarding = ((self.stimulus1, self.stimulus2) == config.REWARDING_SEQUENCE)
+
+    def write_to_file(self, go_or_nogo, is_correct):
+        self.update_success_frequency(is_correct)
+        headers = ["freq_correct",
+                   "subject",
+                   "experiment",
+                   "date",
+                   "timestamp",
+                   "trial",
+                   "simulus1",
+                   "simulus2",
+                   "response",
+                   "is_correct",
+                   "response_time",
+                   "BACKGROUND_COLOR",
+                   "SEPARATOR_COLOR",
+                   "NEXT_BUTTON_COLOR",
+                   "BLACKOUT_COLOR",
+                   "SYMBOL_WIDTH",
+                   "NEXT_BUTTON_WIDTH",
+                   "BLACKOUT_TIME",
+                   "DELAY_AFTER_REWARD",
+                   "SOUND_CORRECT",
+                   "SOUND_INCORRECT",
+                   "STIMULUS_TIME",
+                   "GO_BUTTON_DURATION",
+                   "RETENTION_TIME",
+                   "GO_BUTTON_WIDTH",
+                   "GO_BUTTON_COLOR",
+                   "REWARDING_SEQUENCE",
+                   "INTER_STIMULUS_TIME"]
+
+        toc = time.time()
+        response_time = round(toc - self.tic, TIMETOL)
+        values = [self.success_frequency,
+                  config.SUBJECT_TAG,
+                  self.experiment_abbreviation(),
+                  datestamp(),
+                  timestamp(),
+                  self.trial_cnt,
+                  self.stimulus1,
+                  self.stimulus2,
+                  go_or_nogo,
+                  is_correct,
+                  response_time,
+                  BACKGROUND_COLOR,
+                  SEPARATOR_COLOR,
+                  NEXT_BUTTON_COLOR,
+                  BLACKOUT_COLOR,
+                  config.SYMBOL_WIDTH,
+                  config.NEXT_BUTTON_WIDTH,
+                  config.BLACKOUT_TIME,
+                  config.DELAY_AFTER_REWARD,
+                  config.SOUND_CORRECT,
+                  config.SOUND_INCORRECT,
+                  config.STIMULUS_TIME,
+                  config.GO_BUTTON_DURATION,
+                  config.RETENTION_TIME,
+                  config.GO_BUTTON_WIDTH,
+                  GO_BUTTON_COLOR,
+                  config.REWARDING_SEQUENCE[0] + "_" + config.REWARDING_SEQUENCE[1],
+                  config.INTER_STIMULUS_TIME]
+
+        self.result_file.write(headers, values)
 
     def experiment_abbreviation(self):
         return config.SEQUENCE_DISCRIMINATION
@@ -494,7 +712,6 @@ class SequenceDiscrimination(Discrimination):
 class SingleStimulusDiscrimination(Discrimination):
     def __init__(self):
         super().__init__()
-        self.go_waiting = None
 
     def start_trial(self, event=None):
         self.clear()
@@ -505,11 +722,71 @@ class SingleStimulusDiscrimination(Discrimination):
         self.go_waiting = self.root.after(time_to_go_away, self.show_only_next)
 
     def display_random_stimulus(self):
-        symbol = random.choice(config.SYMBOLS)
+        self.stimulus = random.choice(config.SYMBOLS_SS)
         self.top_canvas.delete(tk.ALL)
-        self.display_symbol_top(symbol)
+        self.display_symbol_top(self.stimulus)
         self.root.after(config.STIMULUS_TIME, self.clear)
-        self.is_rewarding = (symbol == config.REWARDING_STIMULUS)
+        self.is_rewarding = (self.stimulus == config.REWARDING_STIMULUS)
+
+    def write_to_file(self, go_or_nogo, is_correct):
+        self.update_success_frequency(is_correct)
+        headers = ["freq_correct",
+                   "subject",
+                   "experiment",
+                   "date",
+                   "timestamp",
+                   "trial",
+                   "simulus",
+                   "response",
+                   "is_correct",
+                   "response_time",
+                   "BACKGROUND_COLOR",
+                   "SEPARATOR_COLOR",
+                   "NEXT_BUTTON_COLOR",
+                   "BLACKOUT_COLOR",
+                   "SYMBOL_WIDTH",
+                   "NEXT_BUTTON_WIDTH",
+                   "BLACKOUT_TIME",
+                   "DELAY_AFTER_REWARD",
+                   "SOUND_CORRECT",
+                   "SOUND_INCORRECT",
+                   "STIMULUS_TIME",
+                   "GO_BUTTON_DURATION",
+                   "RETENTION_TIME",
+                   "GO_BUTTON_WIDTH",
+                   "GO_BUTTON_COLOR",
+                   "REWARDING_STIMULUS"]
+
+        toc = time.time()
+        response_time = round(toc - self.tic, TIMETOL)
+        values = [self.success_frequency,
+                  config.SUBJECT_TAG,
+                  self.experiment_abbreviation(),
+                  datestamp(),
+                  timestamp(),
+                  self.trial_cnt,
+                  self.stimulus,
+                  go_or_nogo,
+                  is_correct,
+                  response_time,
+                  BACKGROUND_COLOR,
+                  SEPARATOR_COLOR,
+                  NEXT_BUTTON_COLOR,
+                  BLACKOUT_COLOR,
+                  config.SYMBOL_WIDTH,
+                  config.NEXT_BUTTON_WIDTH,
+                  config.BLACKOUT_TIME,
+                  config.DELAY_AFTER_REWARD,
+                  config.SOUND_CORRECT,
+                  config.SOUND_INCORRECT,
+                  config.STIMULUS_TIME,
+                  config.GO_BUTTON_DURATION,
+                  config.RETENTION_TIME,
+                  config.GO_BUTTON_WIDTH,
+                  GO_BUTTON_COLOR,
+                  config.REWARDING_STIMULUS]
+
+        self.result_file.write(headers, values)
 
     def experiment_abbreviation(self):
         return config.SINGLE_STIMULUS_DISCRIMINATION
@@ -537,6 +814,18 @@ def _play(filename):
         print('\a')  # beep
 
 
+def datestamp():
+    now = datetime.now()
+    year = str(now.year)
+    month = str(now.month)
+    if now.month < 10:
+        month = "0" + month
+    day = str(now.day)
+    if now.day < 10:
+        day = "0" + day
+    return year + "-" + month + "-" + day
+
+
 def timestamp():
     unow = datetime.utcnow()
     hour = str(unow.hour)
@@ -548,8 +837,9 @@ def timestamp():
     second = str(unow.second)
     if unow.second < 10:
         second = "0" + second
-    microsecond = str(unow.microsecond)
-    return hour + ":" + minute + ":" + second + ":" + microsecond
+    microsecond = unow.microsecond
+    millisecond = str(round(microsecond / 1000))
+    return hour + ":" + minute + ":" + second + ":" + millisecond
 
 
 class ResultFile():
@@ -580,6 +870,8 @@ if __name__ == '__main__':
         e = GoButtonTraining()
     elif config.EXPERIMENT == config.MATCHING_TO_SAMPLE:
         e = MatchingToSample()
+    elif config.EXPERIMENT == config.ZERO_DELAY_MATCHING_TO_SAMPLE:
+        e = ZeroDelayMatchingToSample()
     elif config.EXPERIMENT == config.DELAYED_MATCHING_TO_SAMPLE:
         e = DelayedMatchingToSample()
     elif config.EXPERIMENT == config.SEQUENCE_DISCRIMINATION:

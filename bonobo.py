@@ -9,9 +9,13 @@ from sys import platform
 from datetime import datetime
 from math import sqrt
 
-if platform == "linux" or platform == "linux2":
-    import simpleaudio
+# if platform == "linux" or platform == "linux2":
 
+use_simpleaudio = True
+try:
+    import simpleaudio
+except ModuleNotFoundError:
+    use_simpleaudio = True
 
 random.seed()
 
@@ -801,17 +805,16 @@ def play_incorrect():
 
 
 def _play(filename):
-    if platform == "darwin":  # OSX
-        subprocess.call(['afplay', filename])
-    elif platform == "linux" or platform == "linux2":  # Linux
+    if use_simpleaudio:
         wave_obj = simpleaudio.WaveObject.from_wave_file(filename)
         wave_obj.play()
         # play_obj = wave_obj.play()
         # play_obj.wait_done()
-    elif platform == "win32":
-        print('\a')  # beep
     else:
-        print('\a')  # beep
+        if platform == "darwin":  # OSX
+            subprocess.call(['afplay', filename])
+        else:  # platform == "win32":
+            print('\a')  # beep
 
 
 def datestamp():

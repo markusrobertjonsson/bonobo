@@ -16,8 +16,9 @@ SINGLE_STIMULUS_DISCRIMINATION = "SSDis"
 EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION
 # EXPERIMENT = SEQUENCE_DISCRIMINATION
 
-# The subject exposed to the experiment. Used in the name of the result file.
-SUBJECT_TAG = "markus"
+# The subject exposed to the experiment. Used in the name of the result file and
+# as the "subject" column in the result file
+SUBJECT_TAG = "kanzi"
 
 
 ####################
@@ -32,7 +33,7 @@ BACKGROUND_COLOR_RGB = (0, 0, 0)
 SEPARATOR_COLOR_RGB = (255, 255, 255)
 
 # The color of the Next button
-NEXT_BUTTON_COLOR_RGB = (200, 200, 100)
+NEXT_BUTTON_COLOR_RGB = (255, 255, 255)
 
 # The color of the "blackout" screen
 BLACKOUT_COLOR_RGB = (100, 100, 100)
@@ -92,7 +93,7 @@ RETENTION_TIME = 0
 GO_BUTTON_WIDTH = 0.65
 
 # Color of the go button
-GO_BUTTON_COLOR_RGB = (200, 200, 100)
+GO_BUTTON_COLOR_RGB = (255, 255, 255)
 
 
 ####################################

@@ -15,7 +15,7 @@ use_simpleaudio = True
 try:
     import simpleaudio
 except ModuleNotFoundError:
-    use_simpleaudio = True
+    use_simpleaudio = False
 
 random.seed()
 
@@ -378,8 +378,8 @@ class GoButtonTraining(Experiment):
                    "response_time",
                    "BACKGROUND_COLOR",
                    "SEPARATOR_COLOR",
-                   "NEXT_BUTTON_COLOR",
-                   "NEXT_BUTTON_WIDTH",
+                   "GO_BUTTON_COLOR",
+                   "GO_BUTTON_WIDTH",
                    "SOUND_CORRECT"]
 
         toc = time.time()
@@ -392,8 +392,8 @@ class GoButtonTraining(Experiment):
                   response_time,
                   BACKGROUND_COLOR,
                   SEPARATOR_COLOR,
-                  NEXT_BUTTON_COLOR,
-                  config.NEXT_BUTTON_WIDTH,
+                  GO_BUTTON_COLOR,
+                  config.GO_BUTTON_WIDTH,
                   config.SOUND_CORRECT]
 
         self.result_file.write(headers, values)
@@ -405,7 +405,7 @@ class GoButtonTraining(Experiment):
 class DelayedMatchingToSample(Experiment):
     def __init__(self):
         super().__init__()
-        self.use_zero_delay = False
+        self.use_zero_delay = True
 
         # The last delay time used
         self.delay_time = None
@@ -569,7 +569,7 @@ class ZeroDelayMatchingToSample(DelayedMatchingToSample):
 class MatchingToSample(DelayedMatchingToSample):
     def __init__(self):
         super().__init__()
-        self.delay_time = 0
+        self.delay_time = "na"
 
     def start_trial(self, event=None):
         self.clear()
@@ -653,8 +653,8 @@ class SequenceDiscrimination(Discrimination):
                    "date",
                    "timestamp",
                    "trial",
-                   "simulus1",
-                   "simulus2",
+                   "stimulus1",
+                   "stimulus2",
                    "response",
                    "is_correct",
                    "response_time",
@@ -740,7 +740,7 @@ class SingleStimulusDiscrimination(Discrimination):
                    "date",
                    "timestamp",
                    "trial",
-                   "simulus",
+                   "stimulus",
                    "response",
                    "is_correct",
                    "response_time",
@@ -848,16 +848,18 @@ def timestamp():
 class ResultFile():
     def __init__(self, filename):
         self.filename = filename
+        self.path_and_file = "./result_files/" + self.filename
+
+        if not os.path.exists('./result_files'):
+            os.makedirs('./result_files')
 
     def write(self, headers, values):
-        path_and_file = "./result_files/" + self.filename
-
-        if os.path.exists(path_and_file):
-            write_headers = (os.path.getsize(path_and_file) == 0)
+        if os.path.exists(self.path_and_file):
+            write_headers = (os.path.getsize(self.path_and_file) == 0)
         else:
             write_headers = True
 
-        file = open(path_and_file, 'a', newline='')
+        file = open(self.path_and_file, 'a', newline='')
         with file as csvfile:
             w = csv.writer(csvfile, quotechar='"', quoting=csv.QUOTE_MINIMAL, escapechar=None)
             if write_headers:

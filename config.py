@@ -101,8 +101,8 @@ GO_BUTTON_COLOR_RGB = (255, 255, 255)
 ####################################
 
 # The two symbols in the sequence
-SYMBOL1 = 'redsquare'
-SYMBOL2 = 'greensquare'
+SYMBOL1 = 'bluesquare'
+SYMBOL2 = 'yellowsquare'
 
 # The first symbol in the rewarding sequence
 REWARDING_SEQUENCE = (SYMBOL1, SYMBOL2)
@@ -114,6 +114,6 @@ INTER_STIMULUS_TIME = 100
 ###########################################
 # Single stimulus discrimination settings #
 ###########################################
-SYMBOLS_SS = ['redsquare', 'greensquare']
+SYMBOLS_SS = ['bluesquare', 'yellowsquare']
 
-REWARDING_STIMULUS = 'redsquare'
+REWARDING_STIMULUS = 'bluesquare'

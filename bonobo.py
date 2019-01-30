@@ -254,6 +254,14 @@ class Experiment():
             canvas.create_oval(0, 0, L, L, fill='red', tags="shape")
         elif symbol == 'bluesquare':
             canvas.create_rectangle(0, 0, L, L, fill='blue', tags="shape")
+        elif symbol == 'yellowcircle':
+            canvas.create_oval(0, 0, L, L, fill='yellow', tags="shape")
+        elif symbol == 'yellowsquare':
+            canvas.create_rectangle(0, 0, L, L, fill='yellow', tags="shape")
+        elif symbol == 'yellowtriangle':
+            S = sqrt(3) / 2
+            canvas.create_polygon(0, L * (S + 1) / 2, L, L * (S + 1) / 2, L / 2, L * (1 - S) / 2,
+                                  fill='yellow', tags="shape")
 
     def display_symbol_top(self, symbol):
         self.display_symbol(symbol, self.top_canvas)

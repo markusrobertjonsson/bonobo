@@ -25,6 +25,9 @@ SUBJECT_TAG = "kanzi"
 # General settings #
 ####################
 
+# The start screen
+START_SCREEN_COLOR_RGB = (255, 192, 203)
+
 # The background screen color in reg, green, blue (each ranging from 0 to 255)
 BACKGROUND_COLOR_RGB = (0, 0, 0)
 # BACKGROUND_COLOR_RGB = (64, 204, 255)

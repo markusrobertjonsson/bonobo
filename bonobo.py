@@ -19,6 +19,7 @@ except ModuleNotFoundError:
 
 random.seed()
 
+START_SCREEN_COLOR = "#%02x%02x%02x" % config.START_SCREEN_COLOR_RGB
 BACKGROUND_COLOR = "#%02x%02x%02x" % config.BACKGROUND_COLOR_RGB
 SEPARATOR_COLOR = "#%02x%02x%02x" % config.SEPARATOR_COLOR_RGB
 NEXT_BUTTON_COLOR = "#%02x%02x%02x" % config.NEXT_BUTTON_COLOR_RGB
@@ -54,7 +55,7 @@ class Experiment():
         self.set_background_color(BACKGROUND_COLOR)
         self.next_displayed = False
         self.go_displayed = False
-        self.display_next()
+        self.display_start_screen()
 
     def _make_widgets(self):
         self.root = tk.Tk()
@@ -72,6 +73,7 @@ class Experiment():
         self.root.bind("<F11>", self.toggle_fullscreen)
         self.root.bind("<Escape>", self.end_fullscreen)
         self.root.bind("<F5>", self.start_trial)
+        self.root.bind("<space>", self.space_pressed)
 
         # TOP
         self.top_frame = tk.Frame(self.root, height=h, width=W, **frame_options)
@@ -173,10 +175,16 @@ class Experiment():
         pass
 
     def blackout(self):
+        self._set_entire_screen_color(BLACKOUT_COLOR)
+
+    def display_start_screen(self):
+        self._set_entire_screen_color(START_SCREEN_COLOR)
+
+    def _set_entire_screen_color(self, color):
         self.clear_canvases()
-        self.set_background_color(BLACKOUT_COLOR)
-        self.separator1.configure(background=BLACKOUT_COLOR)
-        self.separator2.configure(background=BLACKOUT_COLOR)
+        self.set_background_color(color)
+        self.separator1.configure(background=color)
+        self.separator2.configure(background=color)
 
     def set_background_color(self, color):
         # Root
@@ -270,6 +278,9 @@ class Experiment():
         if self.next_displayed:
             self.trial_cnt += 1
             self.start_trial()
+
+    def space_pressed(self, event=None):
+        self.show_only_next()
 
     def middle_limage_clicked(self, event=None):
         pass

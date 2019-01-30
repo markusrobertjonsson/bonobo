@@ -56,6 +56,7 @@ class Experiment():
         self.next_displayed = False
         self.go_displayed = False
         self.display_start_screen()
+        self.space_is_pressed = False
 
     def _make_widgets(self):
         self.root = tk.Tk()
@@ -280,7 +281,9 @@ class Experiment():
             self.start_trial()
 
     def space_pressed(self, event=None):
-        self.show_only_next()
+        if not self.space_is_pressed:
+            self.show_only_next()
+            self.space_is_pressed = True
 
     def middle_limage_clicked(self, event=None):
         pass
@@ -371,7 +374,11 @@ class NextButtonTraining(Experiment):
 class GoButtonTraining(Experiment):
     def __init__(self):
         super().__init__()
-        self.show_only_go()
+
+    def space_pressed(self, event=None):
+        if not self.space_is_pressed:
+            self.show_only_go()
+            self.space_is_pressed = True
 
     def show_only_go(self):
         super().show_only_go()

@@ -13,8 +13,8 @@ SINGLE_STIMULUS_DISCRIMINATION = "SSDis"
 # EXPERIMENT = ZERO_DELAY_MATCHING_TO_SAMPLE
 # EXPERIMENT = DELAYED_MATCHING_TO_SAMPLE
 # EXPERIMENT = GO_BUTTON_TRAINING
-EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION
-# EXPERIMENT = SEQUENCE_DISCRIMINATION
+# EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION
+EXPERIMENT = SEQUENCE_DISCRIMINATION
 
 # The subject exposed to the experiment. Used in the name of the result file and
 # as the "subject" column in the result file
@@ -67,7 +67,7 @@ SOUND_INCORRECT = 'incorrect.wav'
 # The symbols to use. Shapes to choose from:
 # 'redtriangle', 'bluecircle', 'greensquare', 'bluetriangle', 'greencircle', 'redsquare',
 # 'greentriangle', 'redcircle', 'bluesquare'
-SYMBOLS_MTS = ['redsquare', 'greensquare']
+SYMBOLS_MTS = ['bluesquare', 'yellowsquare']
 
 # The nonzero delay times (in milliseconds) to use. It is chosen randomly in every other
 # trial (and every other is 0). Use [0] for no delay.

@@ -44,6 +44,9 @@ class Experiment():
         self.result_file = ResultFile(filename)
         self.trial_cnt = 0
 
+        # Current self.root.after jobs. They are stored to be able to cancel them in space_pressed.
+        self.current_after_jobs = []
+
         # A list of the last 20 trials, 0 means unuccessful, 1 means successful
         self.success_list = []
 
@@ -55,8 +58,8 @@ class Experiment():
         self.set_background_color(BACKGROUND_COLOR)
         self.next_displayed = False
         self.go_displayed = False
-        self.display_start_screen()
-        self.space_is_pressed = False
+        self.pause_screen_displayed = False
+        self.display_pause_screen()
 
     def _make_widgets(self):
         self.root = tk.Tk()
@@ -178,8 +181,9 @@ class Experiment():
     def blackout(self):
         self._set_entire_screen_color(BLACKOUT_COLOR)
 
-    def display_start_screen(self):
+    def display_pause_screen(self):
         self._set_entire_screen_color(START_SCREEN_COLOR)
+        self.pause_screen_displayed = True
 
     def _set_entire_screen_color(self, color):
         self.clear_canvases()
@@ -281,9 +285,20 @@ class Experiment():
             self.start_trial()
 
     def space_pressed(self, event=None):
-        if not self.space_is_pressed:
-            self.show_only_next()
-            self.space_is_pressed = True
+        if self.pause_screen_displayed:
+            self.get_ready_to_start_trial()
+            self.pause_screen_displayed = False
+        else:
+            self.display_pause_screen()
+            self.cancel_all_after_jobs()
+
+    def get_ready_to_start_trial(self):
+        self.show_only_next()
+
+    def cancel_all_after_jobs(self):
+        for j in self.current_after_jobs:
+            self.root.after_cancel(j)
+        self.current_after_jobs = []
 
     def middle_limage_clicked(self, event=None):
         pass
@@ -332,7 +347,8 @@ class NextButtonTraining(Experiment):
         self.write_to_file()
         self.clear()
         play_correct()
-        self.root.after(config.DELAY_AFTER_REWARD, self.show_only_next)
+        job = self.root.after(config.DELAY_AFTER_REWARD, self.show_only_next)
+        self.current_after_jobs = [job]
 
     def show_only_next(self):
         super().show_only_next()
@@ -375,10 +391,8 @@ class GoButtonTraining(Experiment):
     def __init__(self):
         super().__init__()
 
-    def space_pressed(self, event=None):
-        if not self.space_is_pressed:
-            self.show_only_go()
-            self.space_is_pressed = True
+    def get_ready_to_start_trial(self):
+        self.show_only_go()
 
     def show_only_go(self):
         super().show_only_go()
@@ -393,7 +407,8 @@ class GoButtonTraining(Experiment):
             self.write_to_file()
             self.clear()
             play_correct()
-            self.root.after(config.DELAY_AFTER_REWARD, self.show_only_go)
+            job = self.root.after(config.DELAY_AFTER_REWARD, self.show_only_go)
+            self.current_after_jobs = [job]
 
     def write_to_file(self):
         headers = ["subject",
@@ -452,16 +467,18 @@ class DelayedMatchingToSample(Experiment):
             self.delay_time = random.choice(config.DELAY_TIMES)
         self.use_zero_delay = not self.use_zero_delay
         self.clear()
-        self.display_random_symbol(config.SYMBOL_SHOW_TIME)
-        self.root.after(config.SYMBOL_SHOW_TIME + self.delay_time, self.display_options,
-                        self.sample)
+        job1 = self.display_random_symbol(config.SYMBOL_SHOW_TIME)
+        self.current_after_jobs = [job1]
+        job2 = self.root.after(config.SYMBOL_SHOW_TIME + self.delay_time, self.display_options,
+                               self.sample)
+        self.current_after_jobs.append(job2)
 
     def display_random_symbol(self, display_time):
         self.sample = random.choice(config.SYMBOLS_MTS)
         self.top_canvas.delete(tk.ALL)
         self.display_symbol(self.sample, self.top_canvas)
-        self.root.after(display_time, self.clear)
-        # return symbol
+        job = self.root.after(display_time, self.clear)
+        return job
 
     def display_options(self, correct_symbol, do_clear=True):
         incorrect_symbol = None
@@ -564,12 +581,14 @@ class DelayedMatchingToSample(Experiment):
     def correct_choice(self):
         self.clear()
         play_correct()
-        self.root.after(config.DELAY_AFTER_REWARD, self.show_only_next)
+        job = self.root.after(config.DELAY_AFTER_REWARD, self.show_only_next)
+        self.current_after_jobs = [job]
 
     def incorrect_choice(self):
         self.blackout()
         play_incorrect()
-        self.root.after(config.BLACKOUT_TIME, self.show_only_next)
+        job = self.root.after(config.BLACKOUT_TIME, self.show_only_next)
+        self.current_after_jobs = [job]
 
     def go_clicked(self, event=None):
         pass  # Not used in DMS
@@ -585,8 +604,10 @@ class ZeroDelayMatchingToSample(DelayedMatchingToSample):
 
     def start_trial(self, event=None):
         self.clear()
-        self.display_random_symbol(config.SYMBOL_SHOW_TIME)
-        self.root.after(config.SYMBOL_SHOW_TIME, self.display_options, self.sample)
+        job1 = self.display_random_symbol(config.SYMBOL_SHOW_TIME)
+        self.current_after_jobs = [job1]
+        job2 = self.root.after(config.SYMBOL_SHOW_TIME, self.display_options, self.sample)
+        self.current_after_jobs.append(job2)
 
     def experiment_abbreviation(self):
         return config.ZERO_DELAY_MATCHING_TO_SAMPLE
@@ -624,6 +645,9 @@ class Discrimination(Experiment):
         if self.go_waiting is not None:
             self.write_to_file("nogo", not self.is_rewarding)
 
+    def get_ready_to_start_trial(self):
+        super().show_only_next()
+
     def go_clicked(self, event=None):
         if self.go_waiting is not None:  # Cancel the pending job to remove the go button
             self.root.after_cancel(self.go_waiting)
@@ -633,11 +657,13 @@ class Discrimination(Experiment):
             if self.is_rewarding:
                 self.clear()
                 play_correct()
-                self.root.after(config.DELAY_AFTER_REWARD, self.show_only_next)
+                job = self.root.after(config.DELAY_AFTER_REWARD, self.show_only_next)
+                self.current_after_jobs = [job]
             else:
                 self.blackout()
                 play_incorrect()
-                self.root.after(config.BLACKOUT_TIME, self.show_only_next)
+                job = self.root.after(config.BLACKOUT_TIME, self.show_only_next)
+                self.current_after_jobs = [job]
 
 
 class SequenceDiscrimination(Discrimination):
@@ -651,11 +677,14 @@ class SequenceDiscrimination(Discrimination):
 
     def start_trial(self, event=None):
         self.clear()
-        self.display_random_sequence()
+        job1, job2, job3 = self.display_random_sequence()
+        self.current_after_jobs = [job1, job2, job3]
         time_to_go = 2 * config.STIMULUS_TIME + config.INTER_STIMULUS_TIME + config.RETENTION_TIME
-        self.root.after(time_to_go, self.show_only_go)
+        job4 = self.root.after(time_to_go, self.show_only_go)
+        self.current_after_jobs.append(job4)
         time_to_go_away = time_to_go + config.GO_BUTTON_DURATION
         self.go_waiting = self.root.after(time_to_go_away, self.show_only_next)
+        self.current_after_jobs.append(self.go_waiting)
 
     def display_random_sequence(self):
         r = random.random()
@@ -665,11 +694,13 @@ class SequenceDiscrimination(Discrimination):
             self.stimulus1, self.stimulus2 = random.choice(self.nonrewarding_sequences)
         self.top_canvas.delete(tk.ALL)
         self.display_symbol_top(self.stimulus1)
-        self.root.after(config.STIMULUS_TIME, self.clear)
-        self.root.after(config.STIMULUS_TIME + config.INTER_STIMULUS_TIME,
-                        self.display_symbol_top, self.stimulus2)
-        self.root.after(2 * config.STIMULUS_TIME + config.INTER_STIMULUS_TIME, self.clear)
+        job1 = self.root.after(config.STIMULUS_TIME, self.clear)
+        job2 = self.root.after(config.STIMULUS_TIME + config.INTER_STIMULUS_TIME,
+                               self.display_symbol_top, self.stimulus2)
+        job3 = self.root.after(2 * config.STIMULUS_TIME + config.INTER_STIMULUS_TIME, self.clear)
+        self.current_after_jobs = [job1, job2, job3]
         self.is_rewarding = ((self.stimulus1, self.stimulus2) == config.REWARDING_SEQUENCE)
+        return job1, job2, job3
 
     def write_to_file(self, go_or_nogo, is_correct):
         self.update_success_frequency(is_correct)
@@ -745,18 +776,22 @@ class SingleStimulusDiscrimination(Discrimination):
 
     def start_trial(self, event=None):
         self.clear()
-        self.display_random_stimulus()
+        job1 = self.display_random_stimulus()
+        self.current_after_jobs = [job1]
         time_to_go = config.STIMULUS_TIME + config.RETENTION_TIME
-        self.root.after(time_to_go, self.show_only_go)
+        job2 = self.root.after(time_to_go, self.show_only_go)
+        self.current_after_jobs.append(job2)
         time_to_go_away = time_to_go + config.GO_BUTTON_DURATION
         self.go_waiting = self.root.after(time_to_go_away, self.show_only_next)
+        self.current_after_jobs.append(self.go_waiting)
 
     def display_random_stimulus(self):
         self.stimulus = random.choice(config.SYMBOLS_SS)
         self.top_canvas.delete(tk.ALL)
         self.display_symbol_top(self.stimulus)
-        self.root.after(config.STIMULUS_TIME, self.clear)
+        job = self.root.after(config.STIMULUS_TIME, self.clear)
         self.is_rewarding = (self.stimulus == config.REWARDING_STIMULUS)
+        return job
 
     def write_to_file(self, go_or_nogo, is_correct):
         self.update_success_frequency(is_correct)

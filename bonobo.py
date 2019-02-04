@@ -891,7 +891,7 @@ def datestamp():
 
 
 def timestamp():
-    unow = datetime.utcnow()
+    unow = datetime.now()
     hour = str(unow.hour)
     if unow.hour < 10:
         hour = "0" + hour

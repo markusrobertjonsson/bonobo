@@ -546,7 +546,8 @@ class DelayedMatchingToSample(Experiment):
                    "SOUND_CORRECT",
                    "SOUND_INCORRECT",
                    "DELAY_TIMES",
-                   "SYMBOL_SHOW_TIME"]
+                   "SYMBOL_SHOW_TIME",
+                   "SYMBOL_SHOW_TIME_MTS"]
 
         toc = time.time()
         response_time = round(toc - self.tic, TIMETOL)
@@ -574,7 +575,8 @@ class DelayedMatchingToSample(Experiment):
                   config.SOUND_CORRECT,
                   config.SOUND_INCORRECT,
                   config.DELAY_TIMES,
-                  config.SYMBOL_SHOW_TIME]
+                  config.SYMBOL_SHOW_TIME,
+                  config.SYMBOL_SHOW_TIME_MTS]
 
         self.result_file.write(headers, values)
 
@@ -621,7 +623,10 @@ class MatchingToSample(DelayedMatchingToSample):
     def start_trial(self, event=None):
         self.clear()
         self.display_random_symbol()
-        self.display_options(self.sample, do_clear=False)
+        job = self.root.after(config.SYMBOL_SHOW_TIME_MTS, self.display_options,
+                              self.sample, False)
+        self.current_after_jobs = [job]
+        # self.display_options(self.sample, do_clear=False)
 
     def display_random_symbol(self):
         self.sample = random.choice(config.SYMBOLS_MTS)

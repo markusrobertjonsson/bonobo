@@ -9,12 +9,12 @@ SINGLE_STIMULUS_DISCRIMINATION = "SSDis"
 
 # The experiment to run. Remove the "#" before the one to run.
 # EXPERIMENT = NEXT_BUTTON_TRAINING
-# EXPERIMENT = MATCHING_TO_SAMPLE
+EXPERIMENT = MATCHING_TO_SAMPLE
 # EXPERIMENT = ZERO_DELAY_MATCHING_TO_SAMPLE
 # EXPERIMENT = DELAYED_MATCHING_TO_SAMPLE
 # EXPERIMENT = GO_BUTTON_TRAINING
 # EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION
-EXPERIMENT = SEQUENCE_DISCRIMINATION
+# EXPERIMENT = SEQUENCE_DISCRIMINATION
 
 # The subject exposed to the experiment. Used in the name of the result file and
 # as the "subject" column in the result file
@@ -74,8 +74,12 @@ SYMBOLS_MTS = ['bluesquare', 'yellowsquare']
 DELAY_TIMES = [5000, 10000, 20000, 40000, 60000]  # Use
 # DELAY_TIMES = [1000, 2000, 4000, 6000]
 
-# The time (in milliseconds) that the symbol is displayed
+# The time (in milliseconds) that the symbol is displayed in DMTS and ZDMTS
 SYMBOL_SHOW_TIME = 2000
+
+# The time (in milliseconds) that the symbol is displayed by itself in MTS
+# before the options appear
+SYMBOL_SHOW_TIME_MTS = 1000
 
 
 ###################################

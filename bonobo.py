@@ -647,8 +647,17 @@ class Discrimination(Experiment):
 
     def show_only_next(self):
         super().show_only_next()
-        if self.go_waiting is not None:
-            self.write_to_file("nogo", not self.is_rewarding)
+        is_correct = not self.is_rewarding
+        self.write_to_file("nogo", is_correct)
+        if is_correct:
+            self.clear()
+            play_correct()
+            job = self.root.after(config.DELAY_AFTER_REWARD, self.get_ready_to_start_trial)
+        else:
+            self.blackout()
+            play_incorrect()
+            job = self.root.after(config.BLACKOUT_TIME, self.get_ready_to_start_trial)
+        self.current_after_jobs = [job]
 
     def get_ready_to_start_trial(self):
         super().show_only_next()
@@ -662,13 +671,12 @@ class Discrimination(Experiment):
             if self.is_rewarding:
                 self.clear()
                 play_correct()
-                job = self.root.after(config.DELAY_AFTER_REWARD, self.show_only_next)
-                self.current_after_jobs = [job]
+                job = self.root.after(config.DELAY_AFTER_REWARD, self.get_ready_to_start_trial)
             else:
                 self.blackout()
                 play_incorrect()
-                job = self.root.after(config.BLACKOUT_TIME, self.show_only_next)
-                self.current_after_jobs = [job]
+                job = self.root.after(config.BLACKOUT_TIME, self.get_ready_to_start_trial)
+            self.current_after_jobs = [job]
 
 
 class SequenceDiscrimination(Discrimination):

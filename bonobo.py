@@ -293,7 +293,12 @@ class Experiment():
             self.cancel_all_after_jobs()
 
     def get_ready_to_start_trial(self):
-        self.show_only_next()
+        if self.trial_cnt >= config.TRIALS_BEFORE_PAUSE:
+            self.display_pause_screen()
+            self.trial_cnt = 0
+        else:
+            self.clear()
+            self.display_next()
 
     def cancel_all_after_jobs(self):
         for j in self.current_after_jobs:
@@ -333,6 +338,7 @@ class Experiment():
         if len(self.success_list) > 20:
             self.success_list.pop(0)
         self.success_frequency = sum(self.success_list) / len(self.success_list)
+        self.success_frequency = round(self.success_frequency, 3)
 
     def experiment_abbreviation(self):
         assert(False)  # Must be overloaded
@@ -347,11 +353,11 @@ class NextButtonTraining(Experiment):
         self.write_to_file()
         self.clear()
         play_correct()
-        job = self.root.after(config.DELAY_AFTER_REWARD, self.show_only_next)
+        job = self.root.after(config.DELAY_AFTER_REWARD, self.get_ready_to_start_trial)
         self.current_after_jobs = [job]
 
-    def show_only_next(self):
-        super().show_only_next()
+    def get_ready_to_start_trial(self):
+        super().get_ready_to_start_trial()
         self.tic = time.time()
 
     def write_to_file(self):
@@ -392,7 +398,12 @@ class GoButtonTraining(Experiment):
         super().__init__()
 
     def get_ready_to_start_trial(self):
-        self.show_only_go()
+        if self.trial_cnt >= config.TRIALS_BEFORE_PAUSE:
+            self.display_pause_screen()
+            self.trial_cnt = 0
+        else:
+            self.clear()
+            self.show_only_go()
 
     def show_only_go(self):
         super().show_only_go()
@@ -407,7 +418,7 @@ class GoButtonTraining(Experiment):
             self.write_to_file()
             self.clear()
             play_correct()
-            job = self.root.after(config.DELAY_AFTER_REWARD, self.show_only_go)
+            job = self.root.after(config.DELAY_AFTER_REWARD, self.get_ready_to_start_trial)
             self.current_after_jobs = [job]
 
     def write_to_file(self):
@@ -583,13 +594,13 @@ class DelayedMatchingToSample(Experiment):
     def correct_choice(self):
         self.clear()
         play_correct()
-        job = self.root.after(config.DELAY_AFTER_REWARD, self.show_only_next)
+        job = self.root.after(config.DELAY_AFTER_REWARD, self.get_ready_to_start_trial)
         self.current_after_jobs = [job]
 
     def incorrect_choice(self):
         self.blackout()
         play_incorrect()
-        job = self.root.after(config.BLACKOUT_TIME, self.show_only_next)
+        job = self.root.after(config.BLACKOUT_TIME, self.get_ready_to_start_trial)
         self.current_after_jobs = [job]
 
     def go_clicked(self, event=None):
@@ -658,9 +669,6 @@ class Discrimination(Experiment):
             play_incorrect()
             job = self.root.after(config.BLACKOUT_TIME, self.get_ready_to_start_trial)
         self.current_after_jobs = [job]
-
-    def get_ready_to_start_trial(self):
-        super().show_only_next()
 
     def go_clicked(self, event=None):
         if self.go_waiting is not None:  # Cancel the pending job to remove the go button

@@ -25,6 +25,9 @@ SUBJECT_TAG = "kanzi"
 # General settings #
 ####################
 
+# The number of trials before the start screen appears automatically
+TRIALS_BEFORE_PAUSE = 60
+
 # The start screen
 START_SCREEN_COLOR_RGB = (255, 192, 203)
 

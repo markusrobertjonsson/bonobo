@@ -471,6 +471,9 @@ class DelayedMatchingToSample(Experiment):
         # The last displayed right option
         self.right_symbol = None
 
+        # Only used in MatchingToSample
+        self.is_practice_trial = None
+
     def start_trial(self, event=None):
         if self.use_zero_delay:
             self.delay_time = 0
@@ -535,7 +538,8 @@ class DelayedMatchingToSample(Experiment):
         self.write_to_file(self.right_symbol, is_correct)
 
     def write_to_file(self, symbol_clicked, is_correct):
-        self.update_success_frequency(is_correct)
+        if not self.is_practice_trial:
+            self.update_success_frequency(is_correct)
         headers = ["freq_correct",
                    "subject",
                    "experiment",

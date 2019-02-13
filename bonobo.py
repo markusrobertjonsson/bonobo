@@ -418,7 +418,7 @@ class GoButtonTraining(Experiment):
             self.write_to_file()
             self.clear()
             play_correct()
-            job = self.root.after(config.DELAY_AFTER_REWARD, self.get_ready_to_start_trial)
+            job = self.root.after(config.DELAY_AFTER_REWARD, self.show_only_go)
             self.current_after_jobs = [job]
 
     def write_to_file(self):
@@ -491,12 +491,13 @@ class DelayedMatchingToSample(Experiment):
         job = self.root.after(display_time, self.clear)
         return job
 
-    def display_options(self, correct_symbol, do_clear=True):
+    def display_options(self, correct_symbol, do_clear=True, show_only_correct=False):
         incorrect_symbol = None
-        found = False
-        while not found:
-            incorrect_symbol = random.choice(config.SYMBOLS_MTS)
-            found = (incorrect_symbol != correct_symbol)
+        if not show_only_correct:
+            found = False
+            while not found:
+                incorrect_symbol = random.choice(config.SYMBOLS_MTS)
+                found = (incorrect_symbol != correct_symbol)
         if do_clear:
             self.clear()
 
@@ -504,15 +505,17 @@ class DelayedMatchingToSample(Experiment):
         if r < 0.5:
             self.left_is_correct = True
             self.display_symbol(correct_symbol, self.middle_lcanvas)
-            self.display_symbol(incorrect_symbol, self.middle_rcanvas)
             self.left_symbol = correct_symbol
             self.right_symbol = incorrect_symbol
+            if not show_only_correct:
+                self.display_symbol(incorrect_symbol, self.middle_rcanvas)
         else:
             self.left_is_correct = False
-            self.display_symbol(incorrect_symbol, self.middle_lcanvas)
             self.display_symbol(correct_symbol, self.middle_rcanvas)
-            self.left_symbol = incorrect_symbol
             self.right_symbol = correct_symbol
+            self.left_symbol = incorrect_symbol
+            if not show_only_correct:
+                self.display_symbol(incorrect_symbol, self.middle_lcanvas)
         self.tic = time.time()
 
     def middle_limage_clicked(self, event=None):
@@ -562,6 +565,8 @@ class DelayedMatchingToSample(Experiment):
 
         toc = time.time()
         response_time = round(toc - self.tic, TIMETOL)
+        ls = self.left_symbol if self.left_symbol is not None else "None"
+        rs = self.right_symbol if self.right_symbol is not None else "None"
         values = [self.success_frequency,
                   config.SUBJECT_TAG,
                   self.experiment_abbreviation(),
@@ -570,8 +575,8 @@ class DelayedMatchingToSample(Experiment):
                   self.trial_cnt,
                   self.delay_time,
                   self.sample,
-                  self.left_symbol,
-                  self.right_symbol,
+                  ls,
+                  rs,
                   symbol_clicked,
                   is_correct,
                   response_time,
@@ -630,14 +635,15 @@ class MatchingToSample(DelayedMatchingToSample):
     def __init__(self):
         super().__init__()
         self.delay_time = "na"
+        self.is_practice_trial = False  # If True, show only the correct option
 
     def start_trial(self, event=None):
+        self.is_practice_trial = self.trial_cnt % 3 == 0
         self.clear()
         self.display_random_symbol()
         job = self.root.after(config.SYMBOL_SHOW_TIME_MTS, self.display_options,
-                              self.sample, False)
+                              self.sample, False, self.is_practice_trial)
         self.current_after_jobs = [job]
-        # self.display_options(self.sample, do_clear=False)
 
     def display_random_symbol(self):
         self.sample = random.choice(config.SYMBOLS_MTS)
@@ -654,6 +660,10 @@ class Discrimination(Experiment):
 
     def show_only_go(self):
         super().show_only_go()
+        self.tic = time.time()
+
+    def display_go(self):
+        super().display_go()
         self.tic = time.time()
 
     def show_only_next(self):
@@ -797,11 +807,10 @@ class SingleStimulusDiscrimination(Discrimination):
 
     def start_trial(self, event=None):
         self.clear()
-        job1 = self.display_random_stimulus()
-        self.current_after_jobs = [job1]
+        self.display_random_stimulus()
         time_to_go = config.STIMULUS_TIME + config.RETENTION_TIME
-        job2 = self.root.after(time_to_go, self.show_only_go)
-        self.current_after_jobs.append(job2)
+        job = self.root.after(time_to_go, self.display_go)
+        self.current_after_jobs = [job]
         time_to_go_away = time_to_go + config.GO_BUTTON_DURATION
         self.go_waiting = self.root.after(time_to_go_away, self.show_only_next)
         self.current_after_jobs.append(self.go_waiting)
@@ -810,9 +819,7 @@ class SingleStimulusDiscrimination(Discrimination):
         self.stimulus = random.choice(config.SYMBOLS_SS)
         self.top_canvas.delete(tk.ALL)
         self.display_symbol_top(self.stimulus)
-        job = self.root.after(config.STIMULUS_TIME, self.clear)
         self.is_rewarding = (self.stimulus == config.REWARDING_STIMULUS)
-        return job
 
     def write_to_file(self, go_or_nogo, is_correct):
         self.update_success_frequency(is_correct)

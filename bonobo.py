@@ -7,7 +7,7 @@ import time
 import os
 from sys import platform
 from datetime import datetime
-from math import sqrt
+from math import sqrt  # , sin, cos, pi
 
 # if platform == "linux" or platform == "linux2":
 
@@ -19,12 +19,20 @@ except ModuleNotFoundError:
 
 random.seed()
 
-START_SCREEN_COLOR = "#%02x%02x%02x" % config.START_SCREEN_COLOR_RGB
-BACKGROUND_COLOR = "#%02x%02x%02x" % config.BACKGROUND_COLOR_RGB
-SEPARATOR_COLOR = "#%02x%02x%02x" % config.SEPARATOR_COLOR_RGB
-NEXT_BUTTON_COLOR = "#%02x%02x%02x" % config.NEXT_BUTTON_COLOR_RGB
-GO_BUTTON_COLOR = "#%02x%02x%02x" % config.GO_BUTTON_COLOR_RGB
-BLACKOUT_COLOR = "#%02x%02x%02x" % config.BLACKOUT_COLOR_RGB
+hex_format = "#%02x%02x%02x"
+START_SCREEN_COLOR = hex_format % config.START_SCREEN_COLOR_RGB
+if config.EXPERIMENT in (config.SINGLE_STIMULUS_DISCRIMINATION,
+                         config.SINGLE_STIMULUS_DISCRIMINATION_WITH_PRACTICE,
+                         config.SEQUENCE_DISCRIMINATION):
+    BACKGROUND_COLOR = hex_format % config.DISCRIMINATION_BACKGROUND_COLOR_RGB
+else:
+    BACKGROUND_COLOR = hex_format % config.BACKGROUND_COLOR_RGB
+SEPARATOR_COLOR = hex_format % config.SEPARATOR_COLOR_RGB
+NEXT_BUTTON_COLOR = hex_format % config.NEXT_BUTTON_COLOR_RGB
+GO_BUTTON_COLOR = hex_format % config.GO_BUTTON_COLOR_RGB
+BLACKOUT_COLOR = hex_format % config.BLACKOUT_COLOR_RGB
+DISCRIMINATION_LEFT_COLOR = hex_format % config.DISCRIMINATION_LEFT_COLOR_RGB
+DISCRIMINATION_RIGHT_COLOR = hex_format % config.DISCRIMINATION_RIGHT_COLOR_RGB
 
 frame_options = dict()  # For debugging frame positioning
 # {'highlightbackground': 'blue',
@@ -34,7 +42,7 @@ frame_options = dict()  # For debugging frame positioning
 
 canvas_options = {'bd': 0, 'highlightthickness': 0}
 
-TOL = 0.99
+TOL = 0.49
 TIMETOL = 3  # Round delay times to nearest millisecond
 
 
@@ -102,7 +110,8 @@ class Experiment():
         self.middle_lframe = tk.Frame(self.middle_frame, height=h, width=fw, **frame_options)
         self.middle_lcanvas = tk.Canvas(self.middle_lframe, height=self.L, width=self.L,
                                         **canvas_options)
-        self.middle_lcanvas.tag_bind("shape", "<Button-1>", self.middle_limage_clicked)
+        # self.middle_lcanvas.tag_bind("shape", "<Button-1>", self.middle_limage_clicked)
+        self.middle_lcanvas.bind("<Button-1>", self.middle_limage_clicked)
         self.middle_lcanvas.pack(side=tk.RIGHT)
         self.middle_lframe.pack_propagate(False)
         self.middle_lframe.pack(side=tk.LEFT)
@@ -121,7 +130,8 @@ class Experiment():
         self.middle_rframe = tk.Frame(self.middle_frame, height=h, width=fw, **frame_options)
         self.middle_rcanvas = tk.Canvas(self.middle_rframe, height=self.L, width=self.L,
                                         **canvas_options)
-        self.middle_rcanvas.tag_bind("shape", "<Button-1>", self.middle_rimage_clicked)
+        # self.middle_rcanvas.tag_bind("shape", "<Button-1>", self.middle_rimage_clicked)
+        self.middle_rcanvas.bind("<Button-1>", self.middle_rimage_clicked)
         self.middle_rcanvas.pack(side=tk.LEFT)
         self.middle_rframe.pack_propagate(False)
         self.middle_rframe.pack(side=tk.LEFT)
@@ -161,6 +171,10 @@ class Experiment():
 
         self.next_frame.pack_propagate(False)
         self.next_frame.pack(expand=True, side=tk.TOP)
+
+        if config.HIDE_MOUSE_POINTER:
+            # Hide mouse pointer
+            self.root.config(cursor="none")
 
     def toggle_fullscreen(self, event=None):
         self.is_fullscreen = not self.is_fullscreen  # Just toggling the boolean
@@ -246,35 +260,44 @@ class Experiment():
         if symbol == 'redtriangle':
             S = sqrt(3) / 2
             canvas.create_polygon(0, L * (S + 1) / 2, L, L * (S + 1) / 2, L / 2, L * (1 - S) / 2,
-                                  fill='red', tags="shape")
+                                  fill='red', outline="", tags="shape")
         elif symbol == 'bluecircle':
-            canvas.create_oval(0, 0, L, L, fill='blue', tags="shape")
+            canvas.create_oval(0, 0, L, L, fill='blue', outline="", tags="shape")
         elif symbol == 'greensquare':
-            canvas.create_rectangle(0, 0, L, L, fill='green', tags="shape")
+            canvas.create_rectangle(0, 0, L, L, fill='green', outline="", tags="shape")
         elif symbol == 'bluetriangle':
             S = sqrt(3) / 2
             canvas.create_polygon(0, L * (S + 1) / 2, L, L * (S + 1) / 2, L / 2, L * (1 - S) / 2,
-                                  fill='blue', tags="shape")
+                                  fill='blue', outline="", tags="shape")
         elif symbol == 'greencircle':
-            canvas.create_oval(0, 0, L, L, fill='green', tags="shape")
+            canvas.create_oval(0, 0, L, L, fill='green', outline="", tags="shape")
         elif symbol == 'redsquare':
-            canvas.create_rectangle(0, 0, L, L, fill='red', tags="shape")
+            canvas.create_rectangle(0, 0, L, L, fill='red', outline="", tags="shape")
         elif symbol == 'greentriangle':
             S = sqrt(3) / 2
             canvas.create_polygon(0, L * (S + 1) / 2, L, L * (S + 1) / 2, L / 2, L * (1 - S) / 2,
-                                  fill='green', tags="shape")
+                                  fill='green', outline="", tags="shape")
         elif symbol == 'redcircle':
-            canvas.create_oval(0, 0, L, L, fill='red', tags="shape")
+            canvas.create_oval(0, 0, L, L, fill='red', outline="", tags="shape")
         elif symbol == 'bluesquare':
-            canvas.create_rectangle(0, 0, L, L, fill='blue', tags="shape")
+            canvas.create_rectangle(0, 0, L, L, fill='blue', outline="", tags="shape")
         elif symbol == 'yellowcircle':
-            canvas.create_oval(0, 0, L, L, fill='yellow', tags="shape")
+            canvas.create_oval(0, 0, L, L, fill='yellow', outline="", tags="shape")
         elif symbol == 'yellowsquare':
-            canvas.create_rectangle(0, 0, L, L, fill='yellow', tags="shape")
+            canvas.create_rectangle(0, 0, L, L, fill='yellow', outline="", tags="shape")
         elif symbol == 'yellowtriangle':
             S = sqrt(3) / 2
             canvas.create_polygon(0, L * (S + 1) / 2, L, L * (S + 1) / 2, L / 2, L * (1 - S) / 2,
-                                  fill='yellow', tags="shape")
+                                  fill='yellow', outline="", tags="shape")
+
+        elif symbol == 'lightbluesquare':
+            canvas.create_rectangle(0, 0, L, L, fill=hex_format % (51, 153, 255), outline="",
+                                    tags="shape")
+        elif symbol == 'orangesquare':
+            canvas.create_rectangle(0, 0, L, L, fill=hex_format % (255, 128, 0), outline="",
+                                    tags="shape")
+        else:
+            raise Exception("Unknown symbol {}".format(symbol))
 
     def display_symbol_top(self, symbol):
         self.display_symbol(symbol, self.top_canvas)
@@ -342,6 +365,18 @@ class Experiment():
 
     def experiment_abbreviation(self):
         assert(False)  # Must be overloaded
+
+    def correct_choice(self):
+        self.clear()
+        play_correct()
+        job = self.root.after(config.DELAY_AFTER_REWARD, self.get_ready_to_start_trial)
+        self.current_after_jobs = [job]
+
+    def incorrect_choice(self):
+        self.blackout()
+        play_incorrect()
+        job = self.root.after(config.BLACKOUT_TIME, self.get_ready_to_start_trial)
+        self.current_after_jobs = [job]
 
 
 class NextButtonTraining(Experiment):
@@ -474,6 +509,9 @@ class DelayedMatchingToSample(Experiment):
         # Only used in MatchingToSample
         self.is_practice_trial = None
 
+        self.left_option_displayed = False
+        self.right_option_displayed = False
+
     def start_trial(self, event=None):
         if self.use_zero_delay:
             self.delay_time = 0
@@ -508,34 +546,44 @@ class DelayedMatchingToSample(Experiment):
         if r < 0.5:
             self.left_is_correct = True
             self.display_symbol(correct_symbol, self.middle_lcanvas)
+            self.left_option_displayed = True
             self.left_symbol = correct_symbol
             self.right_symbol = incorrect_symbol
             if not show_only_correct:
                 self.display_symbol(incorrect_symbol, self.middle_rcanvas)
+                self.right_option_displayed = True
         else:
             self.left_is_correct = False
             self.display_symbol(correct_symbol, self.middle_rcanvas)
+            self.right_option_displayed = True
             self.right_symbol = correct_symbol
             self.left_symbol = incorrect_symbol
             if not show_only_correct:
                 self.display_symbol(incorrect_symbol, self.middle_lcanvas)
+                self.left_option_displayed = True
         self.tic = time.time()
 
     def middle_limage_clicked(self, event=None):
-        is_correct = self.left_is_correct
-        if self.left_is_correct:
-            self.correct_choice()
-        else:
-            self.incorrect_choice()
-        self.write_to_file(self.left_symbol, is_correct)
+        if self.left_option_displayed:
+            is_correct = self.left_is_correct
+            if self.left_is_correct:
+                self.correct_choice()
+            else:
+                self.incorrect_choice()
+            self.left_option_displayed = False
+            self.right_option_displayed = False
+            self.write_to_file(self.left_symbol, is_correct)
 
     def middle_rimage_clicked(self, event=None):
-        is_correct = not self.left_is_correct
-        if self.left_is_correct:
-            self.incorrect_choice()
-        else:
-            self.correct_choice()
-        self.write_to_file(self.right_symbol, is_correct)
+        if self.right_option_displayed:
+            is_correct = not self.left_is_correct
+            if self.left_is_correct:
+                self.incorrect_choice()
+            else:
+                self.correct_choice()
+            self.left_option_displayed = False
+            self.right_option_displayed = False
+            self.write_to_file(self.right_symbol, is_correct)
 
     def write_to_file(self, symbol_clicked, is_correct):
         if not self.is_practice_trial:
@@ -600,18 +648,6 @@ class DelayedMatchingToSample(Experiment):
 
         self.result_file.write(headers, values)
 
-    def correct_choice(self):
-        self.clear()
-        play_correct()
-        job = self.root.after(config.DELAY_AFTER_REWARD, self.get_ready_to_start_trial)
-        self.current_after_jobs = [job]
-
-    def incorrect_choice(self):
-        self.blackout()
-        play_incorrect()
-        job = self.root.after(config.BLACKOUT_TIME, self.get_ready_to_start_trial)
-        self.current_after_jobs = [job]
-
     def go_clicked(self, event=None):
         pass  # Not used in DMS
 
@@ -660,45 +696,100 @@ class MatchingToSample(DelayedMatchingToSample):
 class Discrimination(Experiment):
     def __init__(self):
         super().__init__()
-        self.go_waiting = None
+        self.left_option_displayed = False
+        self.right_option_displayed = False
+        self.is_practice_trial = None
+        # self.go_waiting = None
 
-    def show_only_go(self):
-        super().show_only_go()
+    # def show_only_go(self):
+    #     super().show_only_go()
+    #     self.tic = time.time()
+
+    # def display_go(self):
+    #     super().display_go()
+    #     self.tic = time.time()
+
+    # def show_only_next(self):
+    #     super().show_only_next()
+    #     is_correct = not self.is_rewarding
+    #     self.write_to_file("nogo", is_correct)
+    #     if is_correct:
+    #         self.clear()
+    #         play_correct()
+    #         job = self.root.after(config.DELAY_AFTER_REWARD, self.get_ready_to_start_trial)
+    #     else:
+    #         self.blackout()
+    #         play_incorrect()
+    #         job = self.root.after(config.BLACKOUT_TIME, self.get_ready_to_start_trial)
+    #     self.current_after_jobs = [job]
+
+    def display_options(self):
+        L = 0.99 * self.L
+        S = sqrt(3) / 2
+
+        r = random.random()
+        if (self.is_practice_trial and r < 0.5) or (not self.is_practice_trial):
+            # Circle
+            self.middle_lcanvas.create_oval(0, 0, L, L, fill=DISCRIMINATION_LEFT_COLOR, outline="",
+                                            tags="shape")
+            self.left_option_displayed = True
+        if (self.is_practice_trial and r >= 0.5) or (not self.is_practice_trial):
+            # Triangle
+            self.middle_rcanvas.create_polygon(0, L * (S + 1) / 2,
+                                               L, L * (S + 1) / 2,
+                                               L / 2, L * (1 - S) / 2,
+                                               fill=DISCRIMINATION_RIGHT_COLOR,
+                                               outline="", tags="shape")
+            self.right_option_displayed = True
+
+        # Star
+        # s = L * sin(pi / 5)
+        # self.middle_rcanvas.create_polygon((L - s) / 2, L,  # 1
+        #                                    L / 2, 0,  # 4
+        #                                    (L + s) / 2, L,  # 2
+        #                                    0, L - s * sin(2 * pi / 5),  # 5
+        #                                    L, L - s * sin(2 * pi / 5),  # 3
+        #                                    fill=DISCRIMINATION_RIGHT_COLOR,
+        #                                    outline="", tags="shape")
         self.tic = time.time()
 
-    def display_go(self):
-        super().display_go()
-        self.tic = time.time()
-
-    def show_only_next(self):
-        super().show_only_next()
-        is_correct = not self.is_rewarding
-        self.write_to_file("nogo", is_correct)
-        if is_correct:
-            self.clear()
-            play_correct()
-            job = self.root.after(config.DELAY_AFTER_REWARD, self.get_ready_to_start_trial)
-        else:
-            self.blackout()
-            play_incorrect()
-            job = self.root.after(config.BLACKOUT_TIME, self.get_ready_to_start_trial)
-        self.current_after_jobs = [job]
-
-    def go_clicked(self, event=None):
-        if self.go_waiting is not None:  # Cancel the pending job to remove the go button
-            self.root.after_cancel(self.go_waiting)
-            self.go_waiting = None
-        if self.go_displayed:
-            self.write_to_file("go", self.is_rewarding)
-            if self.is_rewarding:
-                self.clear()
-                play_correct()
-                job = self.root.after(config.DELAY_AFTER_REWARD, self.get_ready_to_start_trial)
+    def middle_limage_clicked(self, event=None):
+        if self.left_option_displayed:
+            is_correct = not self.is_rewarding
+            if is_correct or self.is_practice_trial:
+                self.correct_choice()
             else:
-                self.blackout()
-                play_incorrect()
-                job = self.root.after(config.BLACKOUT_TIME, self.get_ready_to_start_trial)
-            self.current_after_jobs = [job]
+                self.incorrect_choice()
+            self.left_option_displayed = False
+            self.right_option_displayed = False
+            self.write_to_file("left", is_correct)
+
+    def middle_rimage_clicked(self, event=None):
+        if self.right_option_displayed:
+            is_correct = self.is_rewarding
+            if is_correct or self.is_practice_trial:
+                self.correct_choice()
+            else:
+                self.incorrect_choice()
+            self.left_option_displayed = False
+            self.right_option_displayed = False
+            self.write_to_file("right", is_correct)
+
+    # def go_clicked(self, event=None):
+    #     if self.go_waiting is not None:  # Cancel the pending job to remove the go button
+    #         self.root.after_cancel(self.go_waiting)
+    #         self.go_waiting = None
+    #     if self.go_displayed:
+    #         self.write_to_file("go", self.is_rewarding)
+    #         if self.is_rewarding:
+    #             self.clear()
+    #             play_correct()
+    #             job = self.root.after(config.DELAY_AFTER_REWARD, self.get_ready_to_start_trial)
+    #         else:
+    #             self.blackout()
+    #             play_incorrect()
+    #             job = self.root.after(config.BLACKOUT_TIME, self.get_ready_to_start_trial)
+    #         self.current_after_jobs = [job]
 
 
 class SequenceDiscrimination(Discrimination):
@@ -714,12 +805,12 @@ class SequenceDiscrimination(Discrimination):
         self.clear()
         job1, job2, job3 = self.display_random_sequence()
         self.current_after_jobs = [job1, job2, job3]
-        time_to_go = 2 * config.STIMULUS_TIME + config.INTER_STIMULUS_TIME + config.RETENTION_TIME
-        job4 = self.root.after(time_to_go, self.show_only_go)
+        time_to_options = 2 * config.STIMULUS_TIME + config.INTER_STIMULUS_TIME + config.RETENTION_TIME
+        job4 = self.root.after(time_to_options, self.display_options)
         self.current_after_jobs.append(job4)
-        time_to_go_away = time_to_go + config.GO_BUTTON_DURATION
-        self.go_waiting = self.root.after(time_to_go_away, self.show_only_next)
-        self.current_after_jobs.append(self.go_waiting)
+        # time_to_options_away = time_to_options + config.GO_BUTTON_DURATION
+        # self.go_waiting = self.root.after(time_to_options_away, self.show_only_next)
+        # self.current_after_jobs.append(self.go_waiting)
 
     def display_random_sequence(self):
         r = random.random()
@@ -737,7 +828,7 @@ class SequenceDiscrimination(Discrimination):
         self.is_rewarding = ((self.stimulus1, self.stimulus2) == config.REWARDING_SEQUENCE)
         return job1, job2, job3
 
-    def write_to_file(self, go_or_nogo, is_correct):
+    def write_to_file(self, left_or_right, is_correct):
         self.update_success_frequency(is_correct)
         headers = ["freq_correct",
                    "subject",
@@ -778,7 +869,7 @@ class SequenceDiscrimination(Discrimination):
                   self.trial_cnt,
                   self.stimulus1,
                   self.stimulus2,
-                  go_or_nogo,
+                  left_or_right,
                   is_correct,
                   response_time,
                   BACKGROUND_COLOR,
@@ -806,18 +897,27 @@ class SequenceDiscrimination(Discrimination):
 
 
 class SingleStimulusDiscrimination(Discrimination):
-    def __init__(self):
+    def __init__(self, use_practice_trials=False):
+        self.use_practice_trials = use_practice_trials
         super().__init__()
 
     def start_trial(self, event=None):
+        if self.use_practice_trials:
+            self.is_practice_trial = self.trial_cnt % 5 == 0
+        else:
+            self.is_practice_trial = False
+
         self.clear()
-        self.display_random_stimulus()
-        time_to_go = config.STIMULUS_TIME + config.RETENTION_TIME
-        job = self.root.after(time_to_go, self.display_go)
-        self.current_after_jobs = [job]
-        time_to_go_away = time_to_go + config.GO_BUTTON_DURATION
-        self.go_waiting = self.root.after(time_to_go_away, self.show_only_next)
-        self.current_after_jobs.append(self.go_waiting)
+        if self.is_practice_trial:
+            self.display_options()
+        else:
+            self.display_random_stimulus()
+            time_to_options = config.STIMULUS_TIME + config.RETENTION_TIME
+            job = self.root.after(time_to_options, self.display_options)
+            self.current_after_jobs = [job]
+        # time_to_go_away = time_to_go + config.GO_BUTTON_DURATION
+        # self.go_waiting = self.root.after(time_to_go_away, self.show_only_next)
+        # self.current_after_jobs.append(self.go_waiting)
 
     def display_random_stimulus(self):
         self.stimulus = random.choice(config.SYMBOLS_SS)
@@ -826,7 +926,8 @@ class SingleStimulusDiscrimination(Discrimination):
         self.is_rewarding = (self.stimulus == config.REWARDING_STIMULUS)
 
     def write_to_file(self, go_or_nogo, is_correct):
-        self.update_success_frequency(is_correct)
+        if not self.is_practice_trial:
+            self.update_success_frequency(is_correct)
         headers = ["freq_correct",
                    "subject",
                    "experiment",
@@ -886,7 +987,10 @@ class SingleStimulusDiscrimination(Discrimination):
         self.result_file.write(headers, values)
 
     def experiment_abbreviation(self):
-        return config.SINGLE_STIMULUS_DISCRIMINATION
+        if self.use_practice_trials:
+            return config.SINGLE_STIMULUS_DISCRIMINATION_WITH_PRACTICE
+        else:
+            return config.SINGLE_STIMULUS_DISCRIMINATION
 
 
 def play_correct():
@@ -975,7 +1079,9 @@ if __name__ == '__main__':
     elif config.EXPERIMENT == config.SEQUENCE_DISCRIMINATION:
         e = SequenceDiscrimination()
     elif config.EXPERIMENT == config.SINGLE_STIMULUS_DISCRIMINATION:
-        e = SingleStimulusDiscrimination()
+        e = SingleStimulusDiscrimination(use_practice_trials=False)
+    elif config.EXPERIMENT == config.SINGLE_STIMULUS_DISCRIMINATION_WITH_PRACTICE:
+        e = SingleStimulusDiscrimination(use_practice_trials=True)
     else:
         print("Error: Undefined experiment name '" + config.EXPERIMENT + "'.")
     if e:

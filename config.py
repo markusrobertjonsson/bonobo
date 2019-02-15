@@ -6,14 +6,16 @@ ZERO_DELAY_MATCHING_TO_SAMPLE = "ZDMTS"
 DELAYED_MATCHING_TO_SAMPLE = "DMTS"
 SEQUENCE_DISCRIMINATION = "SeqDis"
 SINGLE_STIMULUS_DISCRIMINATION = "SSDis"
+SINGLE_STIMULUS_DISCRIMINATION_WITH_PRACTICE = "SSDisP"
 
 # The experiment to run. Remove the "#" before the one to run.
 # EXPERIMENT = NEXT_BUTTON_TRAINING
-EXPERIMENT = MATCHING_TO_SAMPLE
+# EXPERIMENT = MATCHING_TO_SAMPLE
 # EXPERIMENT = ZERO_DELAY_MATCHING_TO_SAMPLE
 # EXPERIMENT = DELAYED_MATCHING_TO_SAMPLE
 # EXPERIMENT = GO_BUTTON_TRAINING
 # EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION
+EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION_WITH_PRACTICE
 # EXPERIMENT = SEQUENCE_DISCRIMINATION
 
 # The subject exposed to the experiment. Used in the name of the result file and
@@ -25,13 +27,16 @@ SUBJECT_TAG = "kanzi"
 # General settings #
 ####################
 
+# Set to False or True
+HIDE_MOUSE_POINTER = False
+
 # The number of trials before the start screen appears automatically
 TRIALS_BEFORE_PAUSE = 60
 
 # The start screen
 START_SCREEN_COLOR_RGB = (255, 192, 203)
 
-# The background screen color in reg, green, blue (each ranging from 0 to 255)
+# The background screen color in red, green, blue (each ranging from 0 to 255)
 BACKGROUND_COLOR_RGB = (0, 0, 0)
 # BACKGROUND_COLOR_RGB = (64, 204, 255)
 
@@ -89,6 +94,17 @@ SYMBOL_SHOW_TIME_MTS = 1000
 # General discrimination settings #
 ###################################
 
+# Background color
+DISCRIMINATION_BACKGROUND_COLOR_RGB = (192, 192, 192)
+
+# Left symbol to select
+DISCRIMINATION_LEFT_SYMBOL = "circle"
+DISCRIMINATION_LEFT_COLOR_RGB = (255, 255, 255)
+
+# Right symbol to select
+DISCRIMINATION_RIGHT_SYMBOL = "triangle"
+DISCRIMINATION_RIGHT_COLOR_RGB = (0, 0, 0)
+
 # The time (in milliseconds) that each symbol in the sequence is displayed
 STIMULUS_TIME = 2000
 
@@ -111,8 +127,8 @@ GO_BUTTON_COLOR_RGB = (255, 255, 255)
 ####################################
 
 # The two symbols in the sequence
-SYMBOL1 = 'bluesquare'
-SYMBOL2 = 'yellowsquare'
+SYMBOL1 = 'redsquare'
+SYMBOL2 = 'greensquare'
 
 # The first symbol in the rewarding sequence
 REWARDING_SEQUENCE = (SYMBOL1, SYMBOL2)
@@ -124,6 +140,7 @@ INTER_STIMULUS_TIME = 100
 ###########################################
 # Single stimulus discrimination settings #
 ###########################################
-SYMBOLS_SS = ['bluesquare', 'yellowsquare']
+SYMBOLS_SS = ['orangesquare', 'lightbluesquare']
+SYMBOLS_SS_WITH_PRACTICE = ['redsquare', 'greensquare']
 
-REWARDING_STIMULUS = 'bluesquare'
+REWARDING_STIMULUS = 'lightbluesquare'

@@ -800,6 +800,14 @@ class SequenceDiscrimination(Discrimination):
                          (config.SYMBOL2, config.SYMBOL1),
                          (config.SYMBOL2, config.SYMBOL2)]
         self.nonrewarding_sequences = [s for s in all_sequences if s != config.REWARDING_SEQUENCE]
+        self.pot18 = []
+        for s in all_sequences:
+            if s == config.REWARDING_SEQUENCE:
+                self.pot18.extend([s] * 9)
+            else:
+                self.pot18.extend([s] * 3)
+
+        self._create_new_sequences()
 
     def start_trial(self, event=None):
         self.clear()
@@ -808,16 +816,16 @@ class SequenceDiscrimination(Discrimination):
         time_to_options = 2 * config.STIMULUS_TIME + config.INTER_STIMULUS_TIME + config.RETENTION_TIME
         job4 = self.root.after(time_to_options, self.display_options)
         self.current_after_jobs.append(job4)
-        # time_to_options_away = time_to_options + config.GO_BUTTON_DURATION
-        # self.go_waiting = self.root.after(time_to_options_away, self.show_only_next)
-        # self.current_after_jobs.append(self.go_waiting)
+
+    def _create_new_sequences(self):
+        random.shuffle(self.pot18)
+        self.sequences = list(self.pot18)
 
     def display_random_sequence(self):
-        r = random.random()
-        if r < 0.5:
-            self.stimulus1, self.stimulus2 = config.REWARDING_SEQUENCE
-        else:
-            self.stimulus1, self.stimulus2 = random.choice(self.nonrewarding_sequences)
+        self.stimulus1, self.stimulus2 = self.sequences.pop()
+        if len(self.sequences) == 0:
+            self._create_new_sequences()
+
         self.top_canvas.delete(tk.ALL)
         self.display_symbol_top(self.stimulus1)
         job1 = self.root.after(config.STIMULUS_TIME, self.clear)

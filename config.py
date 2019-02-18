@@ -15,8 +15,8 @@ SINGLE_STIMULUS_DISCRIMINATION_WITH_PRACTICE = "SSDisP"
 # EXPERIMENT = DELAYED_MATCHING_TO_SAMPLE
 # EXPERIMENT = GO_BUTTON_TRAINING
 # EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION
-EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION_WITH_PRACTICE
-# EXPERIMENT = SEQUENCE_DISCRIMINATION
+# EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION_WITH_PRACTICE
+EXPERIMENT = SEQUENCE_DISCRIMINATION
 
 # The subject exposed to the experiment. Used in the name of the result file and
 # as the "subject" column in the result file
@@ -130,7 +130,7 @@ GO_BUTTON_COLOR_RGB = (255, 255, 255)
 SYMBOL1 = 'redsquare'
 SYMBOL2 = 'greensquare'
 
-# The first symbol in the rewarding sequence
+# The rewarding sequence
 REWARDING_SEQUENCE = (SYMBOL1, SYMBOL2)
 
 # The inter-stimulus time
@@ -141,6 +141,5 @@ INTER_STIMULUS_TIME = 100
 # Single stimulus discrimination settings #
 ###########################################
 SYMBOLS_SS = ['orangesquare', 'lightbluesquare']
-SYMBOLS_SS_WITH_PRACTICE = ['redsquare', 'greensquare']
 
 REWARDING_STIMULUS = 'lightbluesquare'

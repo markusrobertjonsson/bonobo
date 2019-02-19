@@ -354,14 +354,10 @@ class Experiment():
         return subject + "_" + experiment + "_" + date + ".csv"
 
     def update_success_frequency(self, is_correct):
-        if is_correct:
-            self.success_list.append(1)
-        else:
-            self.success_list.append(0)
+        self.success_list.append(int(is_correct))
         if len(self.success_list) > 20:
             self.success_list.pop(0)
-        self.success_frequency = sum(self.success_list) / len(self.success_list)
-        self.success_frequency = round(self.success_frequency, 3)
+        self.success_frequency = round(sum(self.success_list) / len(self.success_list), 3)
 
     def experiment_abbreviation(self):
         assert(False)  # Must be overloaded
@@ -676,6 +672,8 @@ class ZeroDelayMatchingToSample(DelayedMatchingToSample):
     def __init__(self):
         super().__init__()
         self.delay_time = 0
+        self.success_frequency = {self.delay_time: 0}
+        self.success_list = {self.delay_time: []}
 
     def start_trial(self, event=None):
         self.clear()
@@ -693,6 +691,9 @@ class MatchingToSample(DelayedMatchingToSample):
         super().__init__()
         self.delay_time = "na"
         self.is_practice_trial = False  # If True, show only the correct option
+
+        self.success_frequency = {self.delay_time: 0}
+        self.success_list = {self.delay_time: []}
 
     def start_trial(self, event=None):
         self.is_practice_trial = self.trial_cnt % 3 == 0

@@ -512,6 +512,13 @@ class DelayedMatchingToSample(Experiment):
         self.left_option_displayed = False
         self.right_option_displayed = False
 
+        # Overridden from Experiment, since here we want one success_list per delay time
+        self.success_frequency = dict()
+        self.success_list = dict()
+        for dt in set(config.DELAY_TIMES).union({0}):
+            self.success_frequency[dt] = 0
+            self.success_list[dt] = []
+
     def start_trial(self, event=None):
         if self.use_zero_delay:
             self.delay_time = 0
@@ -619,7 +626,7 @@ class DelayedMatchingToSample(Experiment):
         response_time = round(toc - self.tic, TIMETOL)
         ls = self.left_symbol if self.left_symbol is not None else "None"
         rs = self.right_symbol if self.right_symbol is not None else "None"
-        values = [self.success_frequency,
+        values = [self.success_frequency[self.delay_time],
                   config.SUBJECT_TAG,
                   self.experiment_abbreviation(),
                   datestamp(),
@@ -647,6 +654,16 @@ class DelayedMatchingToSample(Experiment):
                   config.SYMBOL_SHOW_TIME_MTS]
 
         self.result_file.write(headers, values)
+
+    def update_success_frequency(self, is_correct):
+        sl = self.success_list[self.delay_time]
+        if is_correct:
+            sl.append(1)
+        else:
+            sl.append(0)
+        if len(self.success_list) > 20:
+            sl.pop(0)
+        self.success_frequency[self.delay_time] = round(sum(sl) / len(sl), 3)
 
     def go_clicked(self, event=None):
         pass  # Not used in DMS

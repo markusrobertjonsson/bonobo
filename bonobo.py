@@ -17,6 +17,9 @@ try:
 except ModuleNotFoundError:
     use_simpleaudio = False
 
+if platform == "win32":
+    import winsound
+
 random.seed()
 
 hex_format = "#%02x%02x%02x"
@@ -1036,7 +1039,9 @@ def _play(filename):
     else:
         if platform == "darwin":  # OSX
             subprocess.call(['afplay', filename])
-        else:  # platform == "win32":
+        elif platform == "win32":  # Windows
+            winsound.PlaySound(filename, winsound.SND_FILENAME)
+        else:
             print('\a')  # beep
 
 

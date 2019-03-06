@@ -592,8 +592,9 @@ class DelayedMatchingToSample(Experiment):
             self.write_to_file(self.right_symbol, is_correct)
 
     def write_to_file(self, symbol_clicked, is_correct):
-        if not self.is_practice_trial:
-            self.update_success_frequency(is_correct)
+        if self.is_practice_trial:
+            return
+        self.update_success_frequency(is_correct)
         headers = ["freq_correct",
                    "subject",
                    "experiment",
@@ -748,13 +749,12 @@ class Discrimination(Experiment):
         L = 0.99 * self.L
         S = sqrt(3) / 2
 
-        r = random.random()
-        if (self.is_practice_trial and r < 0.5) or (not self.is_practice_trial):
+        if (self.is_practice_trial and not self.is_rewarding) or (not self.is_practice_trial):
             # Circle
             self.middle_lcanvas.create_oval(0, 0, L, L, fill=DISCRIMINATION_LEFT_COLOR, outline="",
                                             tags="shape")
             self.left_option_displayed = True
-        if (self.is_practice_trial and r >= 0.5) or (not self.is_practice_trial):
+        if (self.is_practice_trial and self.is_rewarding) or (not self.is_practice_trial):
             # Triangle
             self.middle_rcanvas.create_polygon(0, L * (S + 1) / 2,
                                                L, L * (S + 1) / 2,
@@ -777,7 +777,7 @@ class Discrimination(Experiment):
     def middle_limage_clicked(self, event=None):
         if self.left_option_displayed:
             is_correct = not self.is_rewarding
-            if is_correct or self.is_practice_trial:
+            if is_correct:
                 self.correct_choice()
             else:
                 self.incorrect_choice()
@@ -788,7 +788,7 @@ class Discrimination(Experiment):
     def middle_rimage_clicked(self, event=None):
         if self.right_option_displayed:
             is_correct = self.is_rewarding
-            if is_correct or self.is_practice_trial:
+            if is_correct:
                 self.correct_choice()
             else:
                 self.incorrect_choice()
@@ -932,21 +932,15 @@ class SingleStimulusDiscrimination(Discrimination):
 
     def start_trial(self, event=None):
         if self.use_practice_trials:
-            self.is_practice_trial = self.trial_cnt % 5 == 0
+            self.is_practice_trial = (self.trial_cnt % 5 == 0)
         else:
             self.is_practice_trial = False
 
         self.clear()
-        if self.is_practice_trial:
-            self.display_options()
-        else:
-            self.display_random_stimulus()
-            time_to_options = config.STIMULUS_TIME + config.RETENTION_TIME
-            job = self.root.after(time_to_options, self.display_options)
-            self.current_after_jobs = [job]
-        # time_to_go_away = time_to_go + config.GO_BUTTON_DURATION
-        # self.go_waiting = self.root.after(time_to_go_away, self.show_only_next)
-        # self.current_after_jobs.append(self.go_waiting)
+        self.display_random_stimulus()
+        time_to_options = config.STIMULUS_TIME + config.RETENTION_TIME
+        job = self.root.after(time_to_options, self.display_options)
+        self.current_after_jobs = [job]
 
     def display_random_stimulus(self):
         self.stimulus = random.choice(config.SYMBOLS_SS)
@@ -955,8 +949,9 @@ class SingleStimulusDiscrimination(Discrimination):
         self.is_rewarding = (self.stimulus == config.REWARDING_STIMULUS)
 
     def write_to_file(self, go_or_nogo, is_correct):
-        if not self.is_practice_trial:
-            self.update_success_frequency(is_correct)
+        if self.is_practice_trial:
+            return
+        self.update_success_frequency(is_correct)
         headers = ["freq_correct",
                    "subject",
                    "experiment",

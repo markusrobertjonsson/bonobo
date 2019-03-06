@@ -15,8 +15,8 @@ SINGLE_STIMULUS_DISCRIMINATION_WITH_PRACTICE = "SSDisP"
 # EXPERIMENT = DELAYED_MATCHING_TO_SAMPLE
 # EXPERIMENT = GO_BUTTON_TRAINING
 # EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION
-# EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION_WITH_PRACTICE
-EXPERIMENT = SEQUENCE_DISCRIMINATION
+EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION_WITH_PRACTICE
+# EXPERIMENT = SEQUENCE_DISCRIMINATION
 
 # The subject exposed to the experiment. Used in the name of the result file and
 # as the "subject" column in the result file
@@ -79,8 +79,8 @@ SYMBOLS_MTS = ['bluesquare', 'yellowsquare']
 
 # The nonzero delay times (in milliseconds) to use. It is chosen randomly in every other
 # trial (and every other is 0). Use [0] for no delay.
-DELAY_TIMES = [5000, 10000, 20000, 40000, 60000]  # Use
-# DELAY_TIMES = [1000, 2000, 4000, 6000]
+# DELAY_TIMES = [5000, 10000, 20000, 40000, 60000]  # Use
+DELAY_TIMES = [0, 1000, 3000]
 
 # The time (in milliseconds) that the symbol is displayed in DMTS and ZDMTS
 SYMBOL_SHOW_TIME = 2000
@@ -142,4 +142,5 @@ INTER_STIMULUS_TIME = 100
 ###########################################
 SYMBOLS_SS = ['orangesquare', 'lightbluesquare']
 
+# The stimulus associated with the option to the right (the triangle)
 REWARDING_STIMULUS = 'lightbluesquare'

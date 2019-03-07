@@ -144,3 +144,11 @@ SYMBOLS_SS = ['orangesquare', 'lightbluesquare']
 
 # The stimulus associated with the option to the right (the triangle)
 REWARDING_STIMULUS = 'lightbluesquare'
+
+
+#########################################################
+# Single stimulus discrimination with practice settings #
+#########################################################
+
+# Every PRACTICE_ROUND_INTERVALth trial is practice trial
+PRACTICE_ROUND_INTERVAL = 4

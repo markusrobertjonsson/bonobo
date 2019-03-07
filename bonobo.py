@@ -932,7 +932,7 @@ class SingleStimulusDiscrimination(Discrimination):
 
     def start_trial(self, event=None):
         if self.use_practice_trials:
-            self.is_practice_trial = (self.trial_cnt % 3 == 0)
+            self.is_practice_trial = (self.trial_cnt % config.PRACTICE_ROUND_INTERVAL == 0)
         else:
             self.is_practice_trial = False
 

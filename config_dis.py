@@ -4,21 +4,21 @@ SSDIS_PRETRAININGA_A_AND_GO = "SSDisPreAandGo"
 SSDIS_PRETRAININGA_A_THEN_GO = "SSDisPreAthenGo"
 
 SSDIS_PRETRAININGB = "SSDisPreB"
-SSDIS_PRETRAININGA_B_AND_GO = "SSDisPreBandGo"
-SSDIS_PRETRAININGA_B_THEN_GO = "SSDisPreBthenGo"
+SSDIS_PRETRAININGB_B_AND_GO = "SSDisPreBandGo"
+SSDIS_PRETRAININGB_B_THEN_GO = "SSDisPreBthenGo"
 
 SINGLE_STIMULUS_DISCRIMINATION = "SSDis"
 
 SEQUENCE_DISCRIMINATION = "SeqDis"
 
 # The experiment to run. Remove the "#" before the one to run.
-# EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION
+EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION
 # EXPERIMENT = SSDIS_PRETRAININGA_GO
 # EXPERIMENT = SSDIS_PRETRAININGA_A_AND_GO
 # EXPERIMENT = SSDIS_PRETRAININGA_A_THEN_GO
 # EXPERIMENT = SSDIS_PRETRAININGB
-# EXPERIMENT = SSDIS_PRETRAININGA_B_AND_GO
-EXPERIMENT = SSDIS_PRETRAININGA_B_THEN_GO
+# EXPERIMENT = SSDIS_PRETRAININGB_B_AND_GO
+# EXPERIMENT = SSDIS_PRETRAININGB_B_THEN_GO
 
 # EXPERIMENT = SEQUENCE_DISCRIMINATION
 
@@ -46,13 +46,13 @@ BACKGROUND_COLOR_RGB = (255, 255, 255)
 # The color of the Next button
 NEXT_BUTTON_COLOR_RGB = (0, 0, 0)
 
-# If button is not pressed after a go-stimulus/sequence, the time to wait before the next trial
-GO_BUTTON_DURATION_GO = 2500
+# The duration of the go-button for a go-stimulus/sequence
+GO_BUTTON_DURATION_GO = 3000
 
-# If button is not pressed after a non-go-stimulus/sequence, the time to wait before the next trial
-GO_BUTTON_DURATION_NOGO = 500
+# The duration of the go-button for a go-stimulus/sequence
+GO_BUTTON_DURATION_NOGO = 1000
 
-# Width (and height) of the button, as a fraction of H/2
+# Width (and height) of the button, as a fraction of H/3
 GO_BUTTON_WIDTH = 0.5
 
 # Color of the go button
@@ -87,9 +87,6 @@ SS_STIMULUS_B = 'star.gif'
 
 # The time (in milliseconds) that the stimulus is presented
 STIMULUS_TIME = 2000
-
-# The time between the stimulus and the display of the go button
-RETENTION_TIME = 0
 
 
 ####################################

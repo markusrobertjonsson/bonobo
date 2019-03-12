@@ -324,7 +324,7 @@ class SingleStimulusDiscrimination2(Discrimination2):
     def start_trial(self, event=None):
         self.clear()
         self.display_random_stimulus()
-        time_to_go_button = config_dis.STIMULUS_TIME + config_dis.RETENTION_TIME
+        time_to_go_button = config_dis.STIMULUS_TIME
         job1 = self.root.after(time_to_go_button, self.show_only_go_button)
         self.current_after_jobs = [job1]
 
@@ -397,7 +397,6 @@ class SingleStimulusDiscrimination2(Discrimination2):
                    "STIMULUS_TIME",
                    "GO_BUTTON_DURATION_GO",
                    "GO_BUTTON_DURATION_NOGO",
-                   "RETENTION_TIME",
                    "GO_BUTTON_WIDTH",
                    "GO_BUTTON_COLOR",
                    "SS_STIMULUS_A"]
@@ -423,7 +422,6 @@ class SingleStimulusDiscrimination2(Discrimination2):
                   config_dis.STIMULUS_TIME,
                   config_dis.GO_BUTTON_DURATION_GO,
                   config_dis.GO_BUTTON_DURATION_NOGO,
-                  config_dis.RETENTION_TIME,
                   config_dis.GO_BUTTON_WIDTH,
                   GO_BUTTON_COLOR,
                   config_dis.SS_STIMULUS_A]
@@ -888,7 +886,7 @@ class SingleStimulusPretrainingB_BThenGo(Discrimination2):
         self.result_file.write(headers, values)
 
     def experiment_abbreviation(self):
-        return config_dis.SSDIS_PRETRAININGA_B_THEN_GO
+        return config_dis.SSDIS_PRETRAININGB_B_THEN_GO
 
 
 class SequenceDiscrimination2(Discrimination2):

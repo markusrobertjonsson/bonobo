@@ -98,18 +98,20 @@ class Discrimination2():
         self.top_frame.pack(expand=True, side=tk.TOP)
 
         # MIDDLE
+        space_width = h / 10
         self.middle_frame = tk.Frame(self.root, width=W, height=h, **frame_options)
 
-        self.middle_left_frame = tk.Frame(self.middle_frame, width=(W - h / 2) / 2, height=h,
+        self.middle_left_frame = tk.Frame(self.middle_frame, width=(W - space_width) / 2, height=h,
                                           **frame_options)
         self.middle_left_frame.pack_propagate(False)
         self.middle_left_frame.pack(side=tk.LEFT)
-        self.middle_space_frame = tk.Frame(self.middle_frame, width=h / 2, height=h,
+
+        self.middle_space_frame = tk.Frame(self.middle_frame, width=space_width, height=h,
                                            **frame_options)
         self.middle_space_frame.pack_propagate(False)
         self.middle_space_frame.pack(side=tk.LEFT)
-        self.middle_right_frame = tk.Frame(self.middle_frame, width=(W - h / 2) / 2, height=h,
-                                           **frame_options)
+        self.middle_right_frame = tk.Frame(self.middle_frame, width=(W - space_width) / 2,
+                                           height=h, **frame_options)
         self.middle_right_frame.pack_propagate(False)
         self.middle_right_frame.pack(side=tk.LEFT)
 
@@ -664,23 +666,17 @@ class SingleStimulusPretrainingB(Discrimination2):
         self.clear()
         self.display_stimulus_symbol(config_dis.SS_STIMULUS_B, self.left_canvas)
         self.tic = time.time()
-        job = self.root.after(config_dis.GO_BUTTON_DURATION_GO, self.nogo)
+        job = self.root.after(config_dis.GO_BUTTON_DURATION_NOGO, self.nogo)
         self.current_after_jobs = [job]
 
     def left_clicked(self, event=None):
         if self.stimulus_displayed:
-            self.incorrect_choice()
-
-    def right_clicked(self, event=None):
-        if self.go_displayed:
             self.cancel_all_after_jobs()
             self.incorrect_choice()
-            self.write_to_file("go", False)
 
     def nogo(self):
-        if self.stimulus_displayed:
-            self.correct_choice()
-            self.write_to_file("nogo", True)
+        self.correct_choice()
+        self.write_to_file("nogo", True)
 
     def write_to_file(self, go_or_nogo, is_correct):
         self.finished_trial_cnt += 1
@@ -806,7 +802,7 @@ class SingleStimulusPretrainingB_BandGo(Discrimination2):
         self.result_file.write(headers, values)
 
     def experiment_abbreviation(self):
-        return config_dis.SSDIS_PRETRAININGA_B_AND_GO
+        return config_dis.SSDIS_PRETRAININGB_B_AND_GO
 
 
 class SingleStimulusPretrainingB_BThenGo(Discrimination2):

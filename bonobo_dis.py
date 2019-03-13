@@ -322,6 +322,12 @@ class SingleStimulusDiscrimination2(Discrimination2):
         super().__init__()
         # If the currently shown stimulus should give reward for pressing go
         self.is_go_stimulus = False
+        self.pot10 = [config_dis.SS_STIMULUS_A, config_dis.SS_STIMULUS_B] * 5
+        self._create_new_sequences()
+
+    def _create_new_sequences(self):
+        random.shuffle(self.pot10)
+        self.stimuli = list(self.pot10)
 
     def start_trial(self, event=None):
         self.clear()
@@ -338,7 +344,10 @@ class SingleStimulusDiscrimination2(Discrimination2):
         self.current_after_jobs.append(job2)
 
     def display_random_stimulus(self):
-        self.stimulus = random.choice([config_dis.SS_STIMULUS_A, config_dis.SS_STIMULUS_B])
+        self.stimulus = self.stimuli.pop()
+        if len(self.stimuli) == 0:
+            self._create_new_sequences()
+
         self.left_canvas.delete(tk.ALL)
         self.display_stimulus_symbol(self.stimulus, self.left_canvas)
         self.is_go_stimulus = (self.stimulus == config_dis.SS_STIMULUS_A)

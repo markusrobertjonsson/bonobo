@@ -1003,18 +1003,18 @@ class SequenceDiscrimination2(Discrimination2):
                    "response",
                    "is_correct",
                    "response_time",
-                   "COLOR_A"
-                   "COLOR_B"
-                   "INTER_STIMULUS_TIME"
-                   "LEFT_OPTION"
-                   "RIGHT_OPTION"
+                   "COLOR_A",
+                   "COLOR_B",
+                   "STIMULUS_TIME",
+                   "INTER_STIMULUS_TIME",
+                   "LEFT_OPTION",
+                   "RIGHT_OPTION",
                    "BACKGROUND_COLOR",
                    "NEXT_BUTTON_COLOR",
                    "BLACKOUT_COLOR",
                    "NEXT_BUTTON_WIDTH",
                    "BLACKOUT_TIME",
-                   "DELAY_AFTER_REWARD",
-                   "STIMULUS_TIME"]
+                   "DELAY_AFTER_REWARD"]
 
         toc = time.time()
         response_time = round(toc - self.tic, TIMETOL)
@@ -1032,6 +1032,7 @@ class SequenceDiscrimination2(Discrimination2):
                   response_time,
                   COLOR_A,
                   COLOR_B,
+                  config_dis.STIMULUS_TIME,
                   config_dis.INTER_STIMULUS_TIME,
                   config_dis.LEFT_OPTION,
                   config_dis.RIGHT_OPTION,
@@ -1040,8 +1041,7 @@ class SequenceDiscrimination2(Discrimination2):
                   BLACKOUT_COLOR,
                   config_dis.NEXT_BUTTON_WIDTH,
                   config_dis.BLACKOUT_TIME,
-                  config_dis.DELAY_AFTER_REWARD,
-                  config_dis.STIMULUS_TIME]
+                  config_dis.DELAY_AFTER_REWARD]
 
         self.result_file.write(headers, values)
 

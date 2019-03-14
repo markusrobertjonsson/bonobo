@@ -27,6 +27,8 @@ BACKGROUND_COLOR = hex_format % config_dis.BACKGROUND_COLOR_RGB
 NEXT_BUTTON_COLOR = hex_format % config_dis.NEXT_BUTTON_COLOR_RGB
 GO_BUTTON_COLOR = hex_format % config_dis.GO_BUTTON_COLOR_RGB
 BLACKOUT_COLOR = hex_format % config_dis.BLACKOUT_COLOR_RGB
+COLOR_A = hex_format % config_dis.COLOR_A_RGB
+COLOR_B = hex_format % config_dis.COLOR_B_RGB
 
 frame_options = dict()  # For debugging frame positioning
 # frame_options = {'highlightbackground': 'blue',
@@ -72,7 +74,9 @@ class Discrimination2():
         self.image_files = {'circle.gif': PhotoImage(file='circle.gif'),
                             'diamond.gif': PhotoImage(file='diamond.gif'),
                             'star.gif': PhotoImage(file='star.gif'),
-                            'balls.gif': PhotoImage(file='balls.gif')}
+                            'balls.gif': PhotoImage(file='balls.gif'),
+                            'blue_circles.gif': PhotoImage(file='blue_circles.gif'),
+                            'yellow_diamond.gif': PhotoImage(file='yellow_diamond.gif')}
         self.root.update()
         for key, image_file in self.image_files.items():
             scaling_factor = ceil(image_file.width() / self.left_canvas.winfo_width())
@@ -897,8 +901,149 @@ class SingleStimulusPretrainingB_BThenGo(Discrimination2):
 class SequenceDiscrimination2(Discrimination2):
     def __init__(self):
         super().__init__()
-        # If the currently shown stimulus should give reward for pressing go
-        self.is_go_sequence = False
+        self.options_displayed = False
+        self.is_correct = True  # Initialize to False so that first sequence is taken from pot
+
+        self.AA = (COLOR_A, COLOR_A)
+        self.AB = (COLOR_A, COLOR_B)
+        self.BA = (COLOR_B, COLOR_A)
+        self.BB = (COLOR_B, COLOR_B)
+        self.pot18 = []
+        for s in [self.AA, self.AB, self.BA, self.BB]:
+            if s == self.AB:
+                self.pot18.extend([s] * 9)
+            else:
+                self.pot18.extend([s] * 3)
+        self._create_new_sequences()
+
+    def _create_new_sequences(self):
+        random.shuffle(self.pot18)
+        self.sequences = list(self.pot18)
+
+    def start_trial(self, event=None):
+        self.clear()
+        job1, job2, job3 = self.display_random_sequence()
+        self.current_after_jobs = [job1, job2, job3]
+        time_to_options = 2 * config_dis.STIMULUS_TIME + config_dis.INTER_STIMULUS_TIME
+        job4 = self.root.after(time_to_options, self.display_options)
+        self.current_after_jobs.append(job4)
+
+    def display_random_sequence(self):
+        if self.is_correct:
+            self.stimulus1, self.stimulus2 = self.sequences.pop()
+            if len(self.sequences) == 0:
+                self._create_new_sequences()
+        else:
+            pass  # Repeat the previous sequence (i.e. keep self.stimulus{1,2}))
+
+        # self.display_symbol_top(self.stimulus1)
+        self._set_entire_screen_color(self.stimulus1)
+        job1 = self.root.after(config_dis.STIMULUS_TIME, self.clear)
+        job2 = self.root.after(config_dis.STIMULUS_TIME + config_dis.INTER_STIMULUS_TIME,
+                               self._set_entire_screen_color, self.stimulus2)
+        job3 = self.root.after(2 * config_dis.STIMULUS_TIME + config_dis.INTER_STIMULUS_TIME,
+                               self.clear)
+        self.current_after_jobs = [job1, job2, job3]
+        self.is_AB = ((self.stimulus1, self.stimulus2) == self.AB)
+        return job1, job2, job3
+
+    def display_options(self):
+        self.clear()
+        self._display_symbol(config_dis.LEFT_OPTION, self.left_canvas)
+        self._display_symbol(config_dis.RIGHT_OPTION, self.right_canvas)
+        self.options_displayed = True
+        self.tic = time.time()
+
+    def _display_symbol(self, symbol, canvas):
+        w = canvas.winfo_width()
+        h = canvas.winfo_height()
+        canvas.create_image(w / 2, h / 2, image=self.image_files[symbol], anchor=tk.CENTER)
+
+    def left_clicked(self, event=None):
+        if self.options_displayed:
+            self.is_correct = self.is_AB
+            self._option_chosen("left")
+
+    def right_clicked(self, event=None):
+        if self.options_displayed:
+            self.is_correct = not self.is_AB
+            self._option_chosen("right")
+
+    def _option_chosen(self, left_or_right):
+        if self.is_correct:
+            self.correct_choice()
+        else:
+            self.incorrect_choice()
+        self.write_to_file(left_or_right)
+        self.options_displayed = False
+
+    def write_to_file(self, left_or_right):
+        self.finished_trial_cnt += 1
+        self.update_success_frequency(self.is_correct)
+        presented = (self.stimulus1, self.stimulus2)
+        sequence = None
+        if presented == self.AA:
+            sequence = "AA"
+        elif presented == self.AB:
+            sequence = "AB"
+        elif presented == self.BA:
+            sequence = "BA"
+        else:
+            sequence = "BB"
+
+        headers = ["freq_correct",
+                   "subject",
+                   "experiment",
+                   "date",
+                   "timestamp",
+                   "trial",
+                   "sequence",
+                   "stimulus1",
+                   "stimulus2",
+                   "response",
+                   "is_correct",
+                   "response_time",
+                   "COLOR_A"
+                   "COLOR_B"
+                   "INTER_STIMULUS_TIME"
+                   "LEFT_OPTION"
+                   "RIGHT_OPTION"
+                   "BACKGROUND_COLOR",
+                   "NEXT_BUTTON_COLOR",
+                   "BLACKOUT_COLOR",
+                   "NEXT_BUTTON_WIDTH",
+                   "BLACKOUT_TIME",
+                   "DELAY_AFTER_REWARD",
+                   "STIMULUS_TIME"]
+
+        toc = time.time()
+        response_time = round(toc - self.tic, TIMETOL)
+        values = [self.success_frequency,
+                  config_dis.SUBJECT_TAG,
+                  self.experiment_abbreviation(),
+                  datestamp(),
+                  timestamp(),
+                  self.started_trial_cnt,
+                  sequence,
+                  self.stimulus1,
+                  self.stimulus2,
+                  left_or_right,
+                  self.is_correct,
+                  response_time,
+                  COLOR_A,
+                  COLOR_B,
+                  config_dis.INTER_STIMULUS_TIME,
+                  config_dis.LEFT_OPTION,
+                  config_dis.RIGHT_OPTION,
+                  BACKGROUND_COLOR,
+                  NEXT_BUTTON_COLOR,
+                  BLACKOUT_COLOR,
+                  config_dis.NEXT_BUTTON_WIDTH,
+                  config_dis.BLACKOUT_TIME,
+                  config_dis.DELAY_AFTER_REWARD,
+                  config_dis.STIMULUS_TIME]
+
+        self.result_file.write(headers, values)
 
     def experiment_abbreviation(self):
         return config_dis.SEQUENCE_DISCRIMINATION

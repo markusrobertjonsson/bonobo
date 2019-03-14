@@ -2,13 +2,10 @@
 SSDIS_PRETRAININGA_GO = "SSDisPreGo"
 SSDIS_PRETRAININGA_A_AND_GO = "SSDisPreAandGo"
 SSDIS_PRETRAININGA_A_THEN_GO = "SSDisPreAthenGo"
-
 SSDIS_PRETRAININGB = "SSDisPreB"
 SSDIS_PRETRAININGB_B_AND_GO = "SSDisPreBandGo"
 SSDIS_PRETRAININGB_B_THEN_GO = "SSDisPreBthenGo"
-
 SINGLE_STIMULUS_DISCRIMINATION = "SSDis"
-
 SEQUENCE_DISCRIMINATION = "SeqDis"
 
 # The experiment to run. Remove the "#" before the one to run.
@@ -18,9 +15,8 @@ SEQUENCE_DISCRIMINATION = "SeqDis"
 # EXPERIMENT = SSDIS_PRETRAININGB
 # EXPERIMENT = SSDIS_PRETRAININGB_B_AND_GO
 # EXPERIMENT = SSDIS_PRETRAININGB_B_THEN_GO
-
-EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION
-# EXPERIMENT = SEQUENCE_DISCRIMINATION
+# EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION
+EXPERIMENT = SEQUENCE_DISCRIMINATION
 
 # The subject exposed to the experiment. Used in the name of the result file and
 # as the "subject" column in the result file
@@ -77,6 +73,14 @@ SOUND_CORRECT = 'correct.wav'
 SOUND_INCORRECT = 'incorrect.wav'
 
 
+###################################
+# General discrimination settings #
+###################################
+
+# The time (in milliseconds) that the stimulus (each stimulus in sequences) is presented
+STIMULUS_TIME = 2000
+
+
 ###########################################
 # Single stimulus discrimination settings #
 ###########################################
@@ -85,20 +89,22 @@ SOUND_INCORRECT = 'incorrect.wav'
 SS_STIMULUS_A = 'circle.gif'
 SS_STIMULUS_B = 'star.gif'
 
-# The time (in milliseconds) that the stimulus is presented
-STIMULUS_TIME = 2000
-
 
 ####################################
 # Sequence discrimination settings #
 ####################################
 
-# The two symbols in the sequence
-SEQ_STIMULUS_A = 'balls.gif'
-SEQ_STIMULUS_B = 'diamond.gif'
-
-# The rewarding sequence
-GO_SEQUENCE = (SEQ_STIMULUS_A, SEQ_STIMULUS_B)
+# The two colors in the sequence
+COLOR_A_RGB = (0, 0, 255)
+COLOR_B_RGB = (255, 255, 0)
 
 # The inter-stimulus time
 INTER_STIMULUS_TIME = 100
+
+# The symbol to the left to press after the sequence presentation, which is correct choice after
+# AB
+LEFT_OPTION = 'blue_circles.gif'
+
+# The symbol to the right to press after the sequence presentation, which is correct choice after
+# AA, BB and BA
+RIGHT_OPTION = 'yellow_diamond.gif'

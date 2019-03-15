@@ -37,10 +37,10 @@ TRIALS_BEFORE_PAUSE = 60
 START_SCREEN_COLOR_RGB = (255, 192, 203)
 
 # The background screen color in red, green, blue (each ranging from 0 to 255)
-BACKGROUND_COLOR_RGB = (255, 255, 255)
+BACKGROUND_COLOR_RGB = (0, 0, 0)
 
 # The color of the Next button
-NEXT_BUTTON_COLOR_RGB = (0, 0, 0)
+NEXT_BUTTON_COLOR_RGB = (255, 255, 255)
 
 # The duration of the go-button for a go-stimulus/sequence
 GO_BUTTON_DURATION_GO = 3000
@@ -78,7 +78,7 @@ SOUND_INCORRECT = 'incorrect.wav'
 ###################################
 
 # The time (in milliseconds) that the stimulus (each stimulus in sequences) is presented
-STIMULUS_TIME = 2000
+STIMULUS_TIME = 1500
 
 
 ###########################################
@@ -99,12 +99,12 @@ COLOR_A_RGB = (0, 0, 255)
 COLOR_B_RGB = (255, 255, 0)
 
 # The inter-stimulus time
-INTER_STIMULUS_TIME = 100
+INTER_STIMULUS_TIME = 300
 
 # The symbol to the left to press after the sequence presentation, which is correct choice after
 # AB
-LEFT_OPTION = 'blue_circles.gif'
+LEFT_OPTION = 'horizontal_lines.gif'
 
 # The symbol to the right to press after the sequence presentation, which is correct choice after
 # AA, BB and BA
-RIGHT_OPTION = 'yellow_diamond.gif'
+RIGHT_OPTION = 'vertical_lines.gif'

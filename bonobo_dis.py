@@ -76,7 +76,12 @@ class Discrimination2():
                             'star.gif': PhotoImage(file='star.gif'),
                             'balls.gif': PhotoImage(file='balls.gif'),
                             'blue_circles.gif': PhotoImage(file='blue_circles.gif'),
-                            'yellow_diamond.gif': PhotoImage(file='yellow_diamond.gif')}
+                            'yellow_diamond.gif': PhotoImage(file='yellow_diamond.gif'),
+                            'green_circles.gif': PhotoImage(file='green_circles.gif'),
+                            'red_circles.gif': PhotoImage(file='red_circles.gif'),
+                            'red_diamond.gif': PhotoImage(file='red_diamond.gif'),
+                            'horizontal_lines.gif': PhotoImage(file='horizontal_lines.gif'),
+                            'vertical_lines.gif': PhotoImage(file='vertical_lines.gif')}
         self.root.update()
         for key, image_file in self.image_files.items():
             scaling_factor = ceil(image_file.width() / self.left_canvas.winfo_width())
@@ -102,7 +107,7 @@ class Discrimination2():
         self.top_frame.pack(expand=True, side=tk.TOP)
 
         # MIDDLE
-        space_width = h / 10
+        space_width = h / 3
         self.middle_frame = tk.Frame(self.root, width=W, height=h, **frame_options)
 
         self.middle_left_frame = tk.Frame(self.middle_frame, width=(W - space_width) / 2, height=h,

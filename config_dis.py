@@ -5,8 +5,12 @@ SSDIS_PRETRAININGA_A_THEN_GO = "SSDisPreAthenGo"
 SSDIS_PRETRAININGB = "SSDisPreB"
 SSDIS_PRETRAININGB_B_AND_GO = "SSDisPreBandGo"
 SSDIS_PRETRAININGB_B_THEN_GO = "SSDisPreBthenGo"
-SINGLE_STIMULUS_DISCRIMINATION = "SSDis"
+SINGLE_STIMULUS_DISCRIMINATION_OLD = "SSDis_old"
 SEQUENCE_DISCRIMINATION = "SeqDis"
+
+# The two new ones April 2019
+SINGLE_STIMULUS_DISCRIMINATION = "SSDis"
+SINGLE_STIMULUS_VS_SEQ = "SSvsSeq"
 
 # The experiment to run. Remove the "#" before the one to run.
 # EXPERIMENT = SSDIS_PRETRAININGA_GO
@@ -15,8 +19,9 @@ SEQUENCE_DISCRIMINATION = "SeqDis"
 # EXPERIMENT = SSDIS_PRETRAININGB
 # EXPERIMENT = SSDIS_PRETRAININGB_B_AND_GO
 # EXPERIMENT = SSDIS_PRETRAININGB_B_THEN_GO
+# EXPERIMENT = SEQUENCE_DISCRIMINATION
 # EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION
-EXPERIMENT = SEQUENCE_DISCRIMINATION
+EXPERIMENT = SINGLE_STIMULUS_VS_SEQ
 
 # The subject exposed to the experiment. Used in the name of the result file and
 # as the "subject" column in the result file
@@ -88,6 +93,20 @@ STIMULUS_TIME = 1500
 # Stimulus symbols
 SS_STIMULUS_A = 'circle.gif'
 SS_STIMULUS_B = 'star.gif'
+
+SS_COLOR_A_RGB = (255, 255, 0)
+SS_COLOR_B_RGB = (255, 0, 0)
+
+SS_STIMULUS_TIME = 1000
+
+
+#########################################
+# Single stimulus vs. sequence settings #
+#########################################
+
+LONG_A_TIME = 4000
+SHORT_A_TIME = 200
+B_TIME = 1000
 
 
 ####################################

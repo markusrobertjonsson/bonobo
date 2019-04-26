@@ -29,6 +29,8 @@ GO_BUTTON_COLOR = hex_format % config_dis.GO_BUTTON_COLOR_RGB
 BLACKOUT_COLOR = hex_format % config_dis.BLACKOUT_COLOR_RGB
 COLOR_A = hex_format % config_dis.COLOR_A_RGB
 COLOR_B = hex_format % config_dis.COLOR_B_RGB
+SS_COLOR_A = hex_format % config_dis.SS_COLOR_A_RGB
+SS_COLOR_B = hex_format % config_dis.SS_COLOR_B_RGB
 
 frame_options = dict()  # For debugging frame positioning
 # frame_options = {'highlightbackground': 'blue',
@@ -170,6 +172,8 @@ class Discrimination2():
         if config_dis.HIDE_MOUSE_POINTER:
             # Hide mouse pointer
             self.root.config(cursor="none")
+
+        self.root.title("vera")
 
     def toggle_fullscreen(self, event=None):
         self.is_fullscreen = not self.is_fullscreen  # Just toggling the boolean
@@ -326,7 +330,7 @@ class Discrimination2():
         self.current_after_jobs = [job]
 
 
-class SingleStimulusDiscrimination2(Discrimination2):
+class SingleStimulusDiscrimination2_old(Discrimination2):
     def __init__(self):
         super().__init__()
         # If the currently shown stimulus should give reward for pressing go
@@ -449,7 +453,7 @@ class SingleStimulusDiscrimination2(Discrimination2):
         self.result_file.write(headers, values)
 
     def experiment_abbreviation(self):
-        return config_dis.SINGLE_STIMULUS_DISCRIMINATION
+        return config_dis.SINGLE_STIMULUS_DISCRIMINATION_OLD
 
 
 class SingleStimulusPretrainingA_Go(Discrimination2):
@@ -907,7 +911,7 @@ class SequenceDiscrimination2(Discrimination2):
     def __init__(self):
         super().__init__()
         self.options_displayed = False
-        self.is_correct = True  # Initialize to False so that first sequence is taken from pot
+        self.is_correct = True  # Initialize to True so that first sequence is taken from pot
 
         self.AA = (COLOR_A, COLOR_A)
         self.AB = (COLOR_A, COLOR_B)
@@ -1054,6 +1058,276 @@ class SequenceDiscrimination2(Discrimination2):
         return config_dis.SEQUENCE_DISCRIMINATION
 
 
+class SingleStimulusDiscrimination(Discrimination2):
+    """April 2019 design."""
+
+    def __init__(self):
+        super().__init__()
+        self.options_displayed = False
+        self.is_correct = True  # Initialize to True so that first sequence is taken from pot
+
+        self.A = SS_COLOR_A
+        self.B = SS_COLOR_B
+        self.POT10 = [self.A, self.B] * 5
+        self._create_new_sequences()
+
+    def _create_new_sequences(self):
+        self.stimuli_pot = list(self.POT10)  # Make a copy
+        random.shuffle(self.stimuli_pot)
+
+    def start_trial(self, event=None):
+        self.clear()
+        self.display_random_stimulus()
+        job = self.root.after(config_dis.SS_STIMULUS_TIME, self.display_options)
+        self.current_after_jobs = [job]
+
+    def display_random_stimulus(self):
+        if self.is_correct:  # Pick from pot
+            self.stimulus = self.stimuli_pot.pop()
+            if len(self.stimuli_pot) == 0:
+                self._create_new_sequences()
+        else:
+            pass  # Repeat the previous stimulus (i.e. keep self.stimulus)
+
+        self._set_entire_screen_color(self.stimulus)
+        self.is_A = (self.stimulus == self.A)
+
+    def display_options(self):
+        self.clear()
+        self._display_symbol(config_dis.LEFT_OPTION, self.left_canvas)
+        self._display_symbol(config_dis.RIGHT_OPTION, self.right_canvas)
+        self.options_displayed = True
+        self.tic = time.time()
+
+    def _display_symbol(self, symbol, canvas):
+        w = canvas.winfo_width()
+        h = canvas.winfo_height()
+        canvas.create_image(w / 2, h / 2, image=self.image_files[symbol], anchor=tk.CENTER)
+
+    def left_clicked(self, event=None):
+        if self.options_displayed:
+            self.is_correct = self.is_A
+            self._option_chosen("left")
+
+    def right_clicked(self, event=None):
+        if self.options_displayed:
+            self.is_correct = not self.is_A
+            self._option_chosen("right")
+
+    def _option_chosen(self, left_or_right):
+        if self.is_correct:
+            self.correct_choice()
+        else:
+            self.incorrect_choice()
+        self.write_to_file(left_or_right)
+        self.options_displayed = False
+
+    def write_to_file(self, left_or_right):
+        self.finished_trial_cnt += 1
+        self.update_success_frequency(self.is_correct)
+        if self.stimulus == self.A:
+            stimulus_acronym = "A"
+        else:  # presented == self.B:
+            stimulus_acronym = "B"
+
+        headers = ["freq_correct",
+                   "subject",
+                   "experiment",
+                   "date",
+                   "timestamp",
+                   "trial",
+                   "stimulus",
+                   "response",
+                   "is_correct",
+                   "response_time",
+                   "SS_COLOR_A",
+                   "SS_COLOR_B",
+                   "SS_STIMULUS_TIME",
+                   "LEFT_OPTION",
+                   "RIGHT_OPTION",
+                   "BACKGROUND_COLOR",
+                   "NEXT_BUTTON_COLOR",
+                   "BLACKOUT_COLOR",
+                   "NEXT_BUTTON_WIDTH",
+                   "BLACKOUT_TIME",
+                   "DELAY_AFTER_REWARD"]
+
+        toc = time.time()
+        response_time = round(toc - self.tic, TIMETOL)
+        values = [self.success_frequency,
+                  config_dis.SUBJECT_TAG,
+                  self.experiment_abbreviation(),
+                  datestamp(),
+                  timestamp(),
+                  self.started_trial_cnt,
+                  stimulus_acronym,
+                  left_or_right,
+                  self.is_correct,
+                  response_time,
+                  COLOR_A,
+                  COLOR_B,
+                  config_dis.STIMULUS_TIME,
+                  config_dis.INTER_STIMULUS_TIME,
+                  config_dis.LEFT_OPTION,
+                  config_dis.RIGHT_OPTION,
+                  BACKGROUND_COLOR,
+                  NEXT_BUTTON_COLOR,
+                  BLACKOUT_COLOR,
+                  config_dis.NEXT_BUTTON_WIDTH,
+                  config_dis.BLACKOUT_TIME,
+                  config_dis.DELAY_AFTER_REWARD]
+
+        self.result_file.write(headers, values)
+
+    def experiment_abbreviation(self):
+        return config_dis.SINGLE_STIMULUS_DISCRIMINATION
+
+
+class SingleStimulusVsSequence(Discrimination2):
+    """April 2019 design."""
+
+    def __init__(self):
+        super().__init__()
+        self.options_displayed = False
+        self.is_correct = True  # Initialize to True so that first sequence is taken from pot
+
+        # self.A = SS_COLOR_A
+        # self.shortAB = (COLOR_A, COLOR_B)
+        # self.longAB = (COLOR_A, COLOR_B)
+        self.A = "A"
+        self.shortAB = "shortAB"
+        self.longAB = "longAB"
+
+        self.POT20 = [self.A] * 10 + [self.shortAB, self.longAB] * 5
+        self._create_new_stimuli()
+
+    def _create_new_stimuli(self):
+        self.stimuli_pot = list(self.POT20)  # Make copy
+        random.shuffle(self.stimuli_pot)
+
+    def start_trial(self, event=None):
+        self.clear()
+        time_to_options = self.display_random_stimulus()
+        job = self.root.after(time_to_options, self.display_options)
+        self.current_after_jobs.append(job)
+
+    def display_random_stimulus(self):
+        self.stimulus = self.stimuli_pot.pop()
+        if len(self.stimuli_pot) == 0:
+            self._create_new_stimuli()
+
+        if self.stimulus == self.A:
+            self._set_entire_screen_color(SS_COLOR_A)
+            job = self.root.after(config_dis.SS_STIMULUS_TIME, self.clear)
+            self.current_after_jobs = [job]
+            time_to_options = config_dis.SS_STIMULUS_TIME
+        else:
+            if self.stimulus == self.shortAB:
+                A_time = config_dis.SHORT_A_TIME
+            else:
+                A_time = config_dis.LONG_A_TIME
+            B_time = config_dis.B_TIME
+            self._set_entire_screen_color(SS_COLOR_A)
+            job1 = self.root.after(A_time, self._set_entire_screen_color, SS_COLOR_B)
+            job2 = self.root.after(A_time + B_time, self.clear)
+            self.current_after_jobs = [job1, job2]
+            time_to_options = A_time + B_time
+
+        self.is_A = (self.stimulus == self.A)
+        return time_to_options
+
+    def display_options(self):
+        self.clear()
+        self._display_symbol(config_dis.LEFT_OPTION, self.left_canvas)
+        self._display_symbol(config_dis.RIGHT_OPTION, self.right_canvas)
+        self.options_displayed = True
+        self.tic = time.time()
+
+    def _display_symbol(self, symbol, canvas):
+        w = canvas.winfo_width()
+        h = canvas.winfo_height()
+        canvas.create_image(w / 2, h / 2, image=self.image_files[symbol], anchor=tk.CENTER)
+
+    def left_clicked(self, event=None):
+        if self.options_displayed:
+            self.is_correct = self.is_A
+            self._option_chosen("left")
+
+    def right_clicked(self, event=None):
+        if self.options_displayed:
+            self.is_correct = not self.is_A
+            self._option_chosen("right")
+
+    def _option_chosen(self, left_or_right):
+        if self.is_correct:
+            self.correct_choice()
+        else:
+            self.incorrect_choice()
+        self.write_to_file(left_or_right)
+        self.options_displayed = False
+
+    def write_to_file(self, left_or_right):
+        self.finished_trial_cnt += 1
+        self.update_success_frequency(self.is_correct)
+
+        headers = ["freq_correct",
+                   "subject",
+                   "experiment",
+                   "date",
+                   "timestamp",
+                   "trial",
+                   "stimulus",
+                   "response",
+                   "is_correct",
+                   "response_time",
+                   "SS_COLOR_A",
+                   "SS_COLOR_B",
+                   "SS_STIMULUS_TIME",
+                   "LONG_A_TIME",
+                   "SHORT_A_TIME",
+                   "B_TIME",
+                   "LEFT_OPTION",
+                   "RIGHT_OPTION",
+                   "BACKGROUND_COLOR",
+                   "NEXT_BUTTON_COLOR",
+                   "BLACKOUT_COLOR",
+                   "NEXT_BUTTON_WIDTH",
+                   "BLACKOUT_TIME",
+                   "DELAY_AFTER_REWARD"]
+
+        toc = time.time()
+        response_time = round(toc - self.tic, TIMETOL)
+        values = [self.success_frequency,
+                  config_dis.SUBJECT_TAG,
+                  self.experiment_abbreviation(),
+                  datestamp(),
+                  timestamp(),
+                  self.started_trial_cnt,
+                  self.stimulus,
+                  left_or_right,
+                  self.is_correct,
+                  response_time,
+                  SS_COLOR_A,
+                  SS_COLOR_B,
+                  config_dis.SS_STIMULUS_TIME,
+                  config_dis.LONG_A_TIME,
+                  config_dis.SHORT_A_TIME,
+                  config_dis.B_TIME,
+                  config_dis.LEFT_OPTION,
+                  config_dis.RIGHT_OPTION,
+                  BACKGROUND_COLOR,
+                  NEXT_BUTTON_COLOR,
+                  BLACKOUT_COLOR,
+                  config_dis.NEXT_BUTTON_WIDTH,
+                  config_dis.BLACKOUT_TIME,
+                  config_dis.DELAY_AFTER_REWARD]
+
+        self.result_file.write(headers, values)
+
+    def experiment_abbreviation(self):
+        return config_dis.SINGLE_STIMULUS_VS_SEQ
+
+
 class ResultFile():
     def __init__(self, filename):
         self.filename = filename
@@ -1131,8 +1405,12 @@ if __name__ == '__main__':
     e = None
     if config_dis.EXPERIMENT == config_dis.SEQUENCE_DISCRIMINATION:
         e = SequenceDiscrimination2()
+    elif config_dis.EXPERIMENT == config_dis.SINGLE_STIMULUS_DISCRIMINATION_OLD:
+        e = SingleStimulusDiscrimination2_old()
     elif config_dis.EXPERIMENT == config_dis.SINGLE_STIMULUS_DISCRIMINATION:
-        e = SingleStimulusDiscrimination2()
+        e = SingleStimulusDiscrimination()
+    elif config_dis.EXPERIMENT == config_dis.SINGLE_STIMULUS_VS_SEQ:
+        e = SingleStimulusVsSequence()
     elif config_dis.EXPERIMENT == config_dis.SSDIS_PRETRAININGA_GO:
         e = SingleStimulusPretrainingA_Go()
     elif config_dis.EXPERIMENT == config_dis.SSDIS_PRETRAININGA_A_AND_GO:

@@ -96,6 +96,8 @@ class Discrimination2():
         H = self.root.winfo_screenheight() * TOL
         h = H / 3
 
+        self.canvas_width = h
+
         # self.root.attributes('-zoomed', True)  # Maximize window
 
         self.is_fullscreen = False
@@ -105,6 +107,15 @@ class Discrimination2():
 
         # TOP
         self.top_frame = tk.Frame(self.root, width=W, height=h, **frame_options)
+
+        self.top_left_canvas = tk.Canvas(self.top_frame, width=self.canvas_width,
+                                         height=self.canvas_width, **canvas_options)
+        self.top_right_canvas = tk.Canvas(self.top_frame, width=self.canvas_width,
+                                          height=self.canvas_width, **canvas_options)
+        self.top_right_canvas.bind("<Button-1>", self.right_clicked)
+        self.top_left_canvas.pack(side=tk.LEFT)
+        self.top_right_canvas.pack(side=tk.RIGHT)
+
         self.top_frame.pack_propagate(False)
         self.top_frame.pack(expand=True, side=tk.TOP)
 
@@ -126,25 +137,31 @@ class Discrimination2():
         self.middle_right_frame.pack_propagate(False)
         self.middle_right_frame.pack(side=tk.LEFT)
 
-        self.canvas_width = h
         self.left_canvas = tk.Canvas(self.middle_left_frame, width=self.canvas_width,
                                      height=self.canvas_width, **canvas_options)
-        self.left_canvas.bind("<Button-1>", self.left_clicked)
+        # self.left_canvas.bind("<Button-1>", self.left_clicked)
         self.left_canvas.pack(side=tk.RIGHT)
 
         self.right_canvas = tk.Canvas(self.middle_right_frame, width=self.canvas_width,
                                       height=self.canvas_width, **canvas_options)
-        self.right_canvas.bind("<Button-1>", self.right_clicked)
+        # self.right_canvas.bind("<Button-1>", self.right_clicked)
         self.right_canvas.pack(side=tk.LEFT)
 
         self.middle_frame.pack_propagate(False)
         self.middle_frame.pack(expand=True, side=tk.TOP)
 
         # BOTTOM
-        self.bottom_frame = tk.Frame(self.root, width=W, height=h, **frame_options)
         self.bottom_canvas_width = h * config_dis.NEXT_BUTTON_WIDTH
+        self.bottom_frame = tk.Frame(self.root, width=W, height=h, **frame_options)
         self.bottom_canvas = tk.Canvas(self.bottom_frame, width=self.bottom_canvas_width,
                                        height=self.bottom_canvas_width, **canvas_options)
+        self.bottom_left_canvas = tk.Canvas(self.bottom_frame, width=self.canvas_width,
+                                            height=self.canvas_width, **canvas_options)
+        self.bottom_left_canvas.bind("<Button-1>", self.left_clicked)
+        self.bottom_right_canvas = tk.Canvas(self.bottom_frame, width=self.canvas_width,
+                                             height=self.canvas_width, **canvas_options)
+        self.bottom_left_canvas.pack(side=tk.LEFT)
+        self.bottom_right_canvas.pack(side=tk.RIGHT)
         self.bottom_canvas.bind("<Button-1>", self.next_clicked)
         self.bottom_canvas.pack(expand=True)
 
@@ -212,6 +229,10 @@ class Discrimination2():
         self.left_canvas.configure(background=color)
         self.right_canvas.configure(background=color)
         self.bottom_canvas.configure(background=color)
+        self.bottom_left_canvas.configure(background=color)
+        self.bottom_right_canvas.configure(background=color)
+        self.top_left_canvas.configure(background=color)
+        self.top_right_canvas.configure(background=color)
 
     def clear(self):
         self.set_background_color(BACKGROUND_COLOR)
@@ -221,6 +242,10 @@ class Discrimination2():
         self.left_canvas.delete(tk.ALL)
         self.right_canvas.delete(tk.ALL)
         self.bottom_canvas.delete(tk.ALL)
+        self.top_left_canvas.delete(tk.ALL)
+        self.top_right_canvas.delete(tk.ALL)
+        self.bottom_left_canvas.delete(tk.ALL)
+        self.bottom_right_canvas.delete(tk.ALL)
         self.next_displayed = False
         self.go_displayed = False
         self.stimulus_displayed = False
@@ -1094,8 +1119,8 @@ class SingleStimulusDiscrimination(Discrimination2):
 
     def display_options(self):
         self.clear()
-        self._display_symbol(config_dis.LEFT_OPTION, self.left_canvas)
-        self._display_symbol(config_dis.RIGHT_OPTION, self.right_canvas)
+        self._display_symbol(config_dis.LEFT_OPTION, self.bottom_left_canvas)
+        self._display_symbol(config_dis.RIGHT_OPTION, self.top_right_canvas)
         self.options_displayed = True
         self.tic = time.time()
 
@@ -1190,9 +1215,6 @@ class SingleStimulusVsSequence(Discrimination2):
         self.options_displayed = False
         self.is_correct = True  # Initialize to True so that first sequence is taken from pot
 
-        # self.A = SS_COLOR_A
-        # self.shortAB = (COLOR_A, COLOR_B)
-        # self.longAB = (COLOR_A, COLOR_B)
         self.A = "A"
         self.shortAB = "shortAB"
         self.longAB = "longAB"
@@ -1237,8 +1259,8 @@ class SingleStimulusVsSequence(Discrimination2):
 
     def display_options(self):
         self.clear()
-        self._display_symbol(config_dis.LEFT_OPTION, self.left_canvas)
-        self._display_symbol(config_dis.RIGHT_OPTION, self.right_canvas)
+        self._display_symbol(config_dis.LEFT_OPTION, self.bottom_left_canvas)
+        self._display_symbol(config_dis.RIGHT_OPTION, self.top_right_canvas)
         self.options_displayed = True
         self.tic = time.time()
 

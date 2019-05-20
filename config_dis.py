@@ -20,8 +20,8 @@ SINGLE_STIMULUS_VS_SEQ = "SSvsSeq"
 # EXPERIMENT = SSDIS_PRETRAININGB_B_AND_GO
 # EXPERIMENT = SSDIS_PRETRAININGB_B_THEN_GO
 # EXPERIMENT = SEQUENCE_DISCRIMINATION
-EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION
-# EXPERIMENT = SINGLE_STIMULUS_VS_SEQ
+# EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION
+EXPERIMENT = SINGLE_STIMULUS_VS_SEQ
 
 # The subject exposed to the experiment. Used in the name of the result file and
 # as the "subject" column in the result file
@@ -31,6 +31,9 @@ SUBJECT_TAG = "johan"
 ####################
 # General settings #
 ####################
+
+# Response buttons placement: "on" for diagonal placement, "off" for next to each other
+RESPONSE_BUTTONS_DIAGONAL = "off"
 
 # Set to False or True
 HIDE_MOUSE_POINTER = False

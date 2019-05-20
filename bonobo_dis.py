@@ -112,7 +112,8 @@ class Discrimination2():
                                          height=self.canvas_width, **canvas_options)
         self.top_right_canvas = tk.Canvas(self.top_frame, width=self.canvas_width,
                                           height=self.canvas_width, **canvas_options)
-        self.top_right_canvas.bind("<Button-1>", self.right_clicked)
+        if config_dis.RESPONSE_BUTTONS_DIAGONAL == "on":
+            self.top_right_canvas.bind("<Button-1>", self.right_clicked)
         self.top_left_canvas.pack(side=tk.LEFT)
         self.top_right_canvas.pack(side=tk.RIGHT)
 
@@ -139,12 +140,14 @@ class Discrimination2():
 
         self.left_canvas = tk.Canvas(self.middle_left_frame, width=self.canvas_width,
                                      height=self.canvas_width, **canvas_options)
-        # self.left_canvas.bind("<Button-1>", self.left_clicked)
+        if config_dis.RESPONSE_BUTTONS_DIAGONAL != "on":
+            self.left_canvas.bind("<Button-1>", self.left_clicked)
         self.left_canvas.pack(side=tk.RIGHT)
 
         self.right_canvas = tk.Canvas(self.middle_right_frame, width=self.canvas_width,
                                       height=self.canvas_width, **canvas_options)
-        # self.right_canvas.bind("<Button-1>", self.right_clicked)
+        if config_dis.RESPONSE_BUTTONS_DIAGONAL != "on":
+            self.right_canvas.bind("<Button-1>", self.right_clicked)
         self.right_canvas.pack(side=tk.LEFT)
 
         self.middle_frame.pack_propagate(False)
@@ -157,7 +160,8 @@ class Discrimination2():
                                        height=self.bottom_canvas_width, **canvas_options)
         self.bottom_left_canvas = tk.Canvas(self.bottom_frame, width=self.canvas_width,
                                             height=self.canvas_width, **canvas_options)
-        self.bottom_left_canvas.bind("<Button-1>", self.left_clicked)
+        if config_dis.RESPONSE_BUTTONS_DIAGONAL == "on":
+            self.bottom_left_canvas.bind("<Button-1>", self.left_clicked)
         self.bottom_right_canvas = tk.Canvas(self.bottom_frame, width=self.canvas_width,
                                              height=self.canvas_width, **canvas_options)
         self.bottom_left_canvas.pack(side=tk.LEFT)
@@ -983,8 +987,12 @@ class SequenceDiscrimination2(Discrimination2):
 
     def display_options(self):
         self.clear()
-        self._display_symbol(config_dis.LEFT_OPTION, self.left_canvas)
-        self._display_symbol(config_dis.RIGHT_OPTION, self.right_canvas)
+        if config_dis.RESPONSE_BUTTONS_DIAGONAL == "on":
+            self._display_symbol(config_dis.LEFT_OPTION, self.bottom_left_canvas)
+            self._display_symbol(config_dis.RIGHT_OPTION, self.top_right_canvas)
+        else:
+            self._display_symbol(config_dis.LEFT_OPTION, self.left_canvas)
+            self._display_symbol(config_dis.RIGHT_OPTION, self.right_canvas)
         self.options_displayed = True
         self.tic = time.time()
 
@@ -1119,8 +1127,12 @@ class SingleStimulusDiscrimination(Discrimination2):
 
     def display_options(self):
         self.clear()
-        self._display_symbol(config_dis.LEFT_OPTION, self.bottom_left_canvas)
-        self._display_symbol(config_dis.RIGHT_OPTION, self.top_right_canvas)
+        if config_dis.RESPONSE_BUTTONS_DIAGONAL == "on":
+            self._display_symbol(config_dis.LEFT_OPTION, self.bottom_left_canvas)
+            self._display_symbol(config_dis.RIGHT_OPTION, self.top_right_canvas)
+        else:
+            self._display_symbol(config_dis.LEFT_OPTION, self.left_canvas)
+            self._display_symbol(config_dis.RIGHT_OPTION, self.right_canvas)
         self.options_displayed = True
         self.tic = time.time()
 
@@ -1259,8 +1271,12 @@ class SingleStimulusVsSequence(Discrimination2):
 
     def display_options(self):
         self.clear()
-        self._display_symbol(config_dis.LEFT_OPTION, self.bottom_left_canvas)
-        self._display_symbol(config_dis.RIGHT_OPTION, self.top_right_canvas)
+        if config_dis.RESPONSE_BUTTONS_DIAGONAL == "on":
+            self._display_symbol(config_dis.LEFT_OPTION, self.bottom_left_canvas)
+            self._display_symbol(config_dis.RIGHT_OPTION, self.top_right_canvas)
+        else:
+            self._display_symbol(config_dis.LEFT_OPTION, self.left_canvas)
+            self._display_symbol(config_dis.RIGHT_OPTION, self.right_canvas)
         self.options_displayed = True
         self.tic = time.time()
 

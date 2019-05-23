@@ -7,9 +7,9 @@ SSDIS_PRETRAININGB_B_AND_GO = "SSDisPreBandGo"
 SSDIS_PRETRAININGB_B_THEN_GO = "SSDisPreBthenGo"
 SINGLE_STIMULUS_DISCRIMINATION_OLD = "SSDis_old"
 SEQUENCE_DISCRIMINATION = "SeqDis"
-
-# The two new ones April 2019
+SEQUENCE_DISCRIMINATION_SOUND = "SeqDisSound"
 SINGLE_STIMULUS_DISCRIMINATION = "SSDis"
+SINGLE_STIMULUS_DISCRIMINATION_SOUND = "SSDisSound"
 SINGLE_STIMULUS_VS_SEQ = "SSvsSeq"
 
 # The experiment to run. Remove the "#" before the one to run.
@@ -20,8 +20,10 @@ SINGLE_STIMULUS_VS_SEQ = "SSvsSeq"
 # EXPERIMENT = SSDIS_PRETRAININGB_B_AND_GO
 # EXPERIMENT = SSDIS_PRETRAININGB_B_THEN_GO
 # EXPERIMENT = SEQUENCE_DISCRIMINATION
-# EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION
-EXPERIMENT = SINGLE_STIMULUS_VS_SEQ
+# EXPERIMENT = SEQUENCE_DISCRIMINATION_SOUND
+EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION
+# EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION_SOUND
+# EXPERIMENT = SINGLE_STIMULUS_VS_SEQ
 
 # The subject exposed to the experiment. Used in the name of the result file and
 # as the "subject" column in the result file
@@ -32,8 +34,11 @@ SUBJECT_TAG = "johan"
 # General settings #
 ####################
 
+# Whether or not to use corrections_trials
+USE_CORRECTION_TRIALS = "off"
+
 # Response buttons placement: "on" for diagonal placement, "off" for next to each other
-RESPONSE_BUTTONS_DIAGONAL = "off"
+RESPONSE_BUTTONS_DIAGONAL = "on"
 
 # Set to False or True
 HIDE_MOUSE_POINTER = False
@@ -97,6 +102,9 @@ STIMULUS_TIME = 1500
 SS_STIMULUS_A = 'circle.gif'
 SS_STIMULUS_B = 'star.gif'
 
+SS_SOUND_A = 'Alesis-Fusion-Nylon-String-Guitar-C4.wav'
+SS_SOUND_B = 'Crash-Cymbal-1.wav'
+
 SS_COLOR_A_RGB = (255, 88, 0)
 SS_COLOR_B_RGB = (0, 0, 255)
 
@@ -119,6 +127,9 @@ B_TIME = 1000
 # The two colors in the sequence
 COLOR_A_RGB = (0, 0, 255)
 COLOR_B_RGB = (255, 255, 0)
+
+SOUND_A = '1980s-Casio-Clarinet-C5.wav'
+SOUND_B = 'Crash-Cymbal-1.wav'
 
 # The inter-stimulus time
 INTER_STIMULUS_TIME = 300

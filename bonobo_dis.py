@@ -967,12 +967,15 @@ class SequenceDiscrimination2(Discrimination2):
         self.current_after_jobs.append(job4)
 
     def display_random_sequence(self):
-        if self.is_correct:
-            self.stimulus1, self.stimulus2 = self.sequences.pop()
-            if len(self.sequences) == 0:
-                self._create_new_sequences()
+        if config_dis.USE_CORRECTION_TRIALS == "on":
+            if self.is_correct:
+                self.stimulus1, self.stimulus2 = self.sequences.pop()
+            else:
+                pass  # Repeat the previous sequence (i.e. keep self.stimulus{1,2}))
         else:
-            pass  # Repeat the previous sequence (i.e. keep self.stimulus{1,2}))
+            self.stimulus1, self.stimulus2 = self.sequences.pop()
+        if len(self.sequences) == 0:
+            self._create_new_sequences()
 
         # self.display_symbol_top(self.stimulus1)
         self._set_entire_screen_color(self.stimulus1)
@@ -1093,6 +1096,160 @@ class SequenceDiscrimination2(Discrimination2):
         return config_dis.SEQUENCE_DISCRIMINATION
 
 
+class SequenceDiscriminationSound(Discrimination2):
+    def __init__(self):
+        super().__init__()
+        self.options_displayed = False
+        self.is_correct = True  # Initialize to True so that first sequence is taken from pot
+
+        self.AA = (config_dis.SOUND_A, config_dis.SOUND_A)
+        self.AB = (config_dis.SOUND_A, config_dis.SOUND_B)
+        self.BA = (config_dis.SOUND_B, config_dis.SOUND_A)
+        self.BB = (config_dis.SOUND_B, config_dis.SOUND_B)
+        self.pot18 = []
+        for s in [self.AA, self.AB, self.BA, self.BB]:
+            if s == self.AB:
+                self.pot18.extend([s] * 9)
+            else:
+                self.pot18.extend([s] * 3)
+        self._create_new_sequences()
+
+    def _create_new_sequences(self):
+        random.shuffle(self.pot18)
+        self.sequences = list(self.pot18)
+
+    def start_trial(self, event=None):
+        self.clear()
+        self.play_random_sequence()
+        time_to_options = 2 * config_dis.STIMULUS_TIME + config_dis.INTER_STIMULUS_TIME
+        job2 = self.root.after(time_to_options, self.display_options)
+        self.current_after_jobs.append(job2)
+
+    def play_random_sequence(self):
+        if config_dis.USE_CORRECTION_TRIALS == "on":
+            if self.is_correct:
+                self.stimulus1, self.stimulus2 = self.sequences.pop()
+            else:
+                pass  # Repeat the previous sequence (i.e. keep self.stimulus{1,2}))
+        else:
+            self.stimulus1, self.stimulus2 = self.sequences.pop()
+        if len(self.sequences) == 0:
+            self._create_new_sequences()
+
+        _play(self.stimulus1)
+        job1 = self.root.after(config_dis.STIMULUS_TIME + config_dis.INTER_STIMULUS_TIME,
+                               _play, self.stimulus2)
+        self.current_after_jobs = [job1]
+        self.is_AB = ((self.stimulus1, self.stimulus2) == self.AB)
+
+    def display_options(self):
+        self.clear()
+        if config_dis.RESPONSE_BUTTONS_DIAGONAL == "on":
+            self._display_symbol(config_dis.LEFT_OPTION, self.bottom_left_canvas)
+            self._display_symbol(config_dis.RIGHT_OPTION, self.top_right_canvas)
+        else:
+            self._display_symbol(config_dis.LEFT_OPTION, self.left_canvas)
+            self._display_symbol(config_dis.RIGHT_OPTION, self.right_canvas)
+        self.options_displayed = True
+        self.tic = time.time()
+
+    def _display_symbol(self, symbol, canvas):
+        w = canvas.winfo_width()
+        h = canvas.winfo_height()
+        canvas.create_image(w / 2, h / 2, image=self.image_files[symbol], anchor=tk.CENTER)
+
+    def left_clicked(self, event=None):
+        if self.options_displayed:
+            self.is_correct = self.is_AB
+            self._option_chosen("left")
+
+    def right_clicked(self, event=None):
+        if self.options_displayed:
+            self.is_correct = not self.is_AB
+            self._option_chosen("right")
+
+    def _option_chosen(self, left_or_right):
+        if self.is_correct:
+            self.correct_choice()
+        else:
+            self.incorrect_choice()
+        self.write_to_file(left_or_right)
+        self.options_displayed = False
+
+    def write_to_file(self, left_or_right):
+        self.finished_trial_cnt += 1
+        self.update_success_frequency(self.is_correct)
+        presented = (self.stimulus1, self.stimulus2)
+        sequence = None
+        if presented == self.AA:
+            sequence = "AA"
+        elif presented == self.AB:
+            sequence = "AB"
+        elif presented == self.BA:
+            sequence = "BA"
+        else:
+            sequence = "BB"
+
+        headers = ["freq_correct",
+                   "subject",
+                   "experiment",
+                   "date",
+                   "timestamp",
+                   "trial",
+                   "sequence",
+                   "stimulus1",
+                   "stimulus2",
+                   "response",
+                   "is_correct",
+                   "response_time",
+                   "RESPONSE_BUTTONS_DIAGONAL",
+                   "COLOR_A",
+                   "COLOR_B",
+                   "STIMULUS_TIME",
+                   "INTER_STIMULUS_TIME",
+                   "LEFT_OPTION",
+                   "RIGHT_OPTION",
+                   "BACKGROUND_COLOR",
+                   "NEXT_BUTTON_COLOR",
+                   "BLACKOUT_COLOR",
+                   "NEXT_BUTTON_WIDTH",
+                   "BLACKOUT_TIME",
+                   "DELAY_AFTER_REWARD"]
+
+        toc = time.time()
+        response_time = round(toc - self.tic, TIMETOL)
+        values = [self.success_frequency,
+                  config_dis.SUBJECT_TAG,
+                  self.experiment_abbreviation(),
+                  datestamp(),
+                  timestamp(),
+                  self.started_trial_cnt,
+                  sequence,
+                  self.stimulus1,
+                  self.stimulus2,
+                  left_or_right,
+                  self.is_correct,
+                  response_time,
+                  config_dis.RESPONSE_BUTTONS_DIAGONAL,
+                  config_dis.SOUND_A,
+                  config_dis.SOUND_B,
+                  config_dis.STIMULUS_TIME,
+                  config_dis.INTER_STIMULUS_TIME,
+                  config_dis.LEFT_OPTION,
+                  config_dis.RIGHT_OPTION,
+                  BACKGROUND_COLOR,
+                  NEXT_BUTTON_COLOR,
+                  BLACKOUT_COLOR,
+                  config_dis.NEXT_BUTTON_WIDTH,
+                  config_dis.BLACKOUT_TIME,
+                  config_dis.DELAY_AFTER_REWARD]
+
+        self.result_file.write(headers, values)
+
+    def experiment_abbreviation(self):
+        return config_dis.SEQUENCE_DISCRIMINATION_SOUND
+
+
 class SingleStimulusDiscrimination(Discrimination2):
     """April 2019 design."""
 
@@ -1117,12 +1274,15 @@ class SingleStimulusDiscrimination(Discrimination2):
         self.current_after_jobs = [job]
 
     def display_random_stimulus(self):
-        if self.is_correct:  # Pick from pot
-            self.stimulus = self.stimuli_pot.pop()
-            if len(self.stimuli_pot) == 0:
-                self._create_new_sequences()
+        if config_dis.USE_CORRECTION_TRIALS == "on":
+            if self.is_correct:  # Pick from pot
+                self.stimulus = self.stimuli_pot.pop()
+            else:
+                pass  # Repeat the previous stimulus (i.e. keep self.stimulus)
         else:
-            pass  # Repeat the previous stimulus (i.e. keep self.stimulus)
+            self.stimulus = self.stimuli_pot.pop()
+        if len(self.stimuli_pot) == 0:
+            self._create_new_sequences()
 
         self._set_entire_screen_color(self.stimulus)
         self.is_A = (self.stimulus == self.A)
@@ -1221,6 +1381,140 @@ class SingleStimulusDiscrimination(Discrimination2):
 
     def experiment_abbreviation(self):
         return config_dis.SINGLE_STIMULUS_DISCRIMINATION
+
+
+class SingleStimulusDiscriminationSound(Discrimination2):
+    """May 2019 design."""
+
+    def __init__(self):
+        super().__init__()
+        self.options_displayed = False
+        self.is_correct = True  # Initialize to True so that first sequence is taken from pot
+
+        self.A = config_dis.SS_SOUND_A
+        self.B = config_dis.SS_SOUND_B
+        self.POT10 = [self.A, self.B] * 5
+        self._create_new_sequences()
+
+    def _create_new_sequences(self):
+        self.stimuli_pot = list(self.POT10)  # Make a copy
+        random.shuffle(self.stimuli_pot)
+
+    def start_trial(self, event=None):
+        self.clear()
+        self.play_random_stimulus()
+        job = self.root.after(config_dis.SS_STIMULUS_TIME, self.display_options)
+        self.current_after_jobs = [job]
+
+    def play_random_stimulus(self):
+        if config_dis.USE_CORRECTION_TRIALS == "on":
+            if self.is_correct:  # Pick from pot
+                self.stimulus = self.stimuli_pot.pop()
+            else:
+                pass  # Repeat the previous stimulus (i.e. keep self.stimulus)
+        else:
+            self.stimulus = self.stimuli_pot.pop()
+        if len(self.stimuli_pot) == 0:
+            self._create_new_sequences()
+
+        _play(self.stimulus)
+        # self._set_entire_screen_color(self.stimulus)
+        self.is_A = (self.stimulus == self.A)
+
+    def display_options(self):
+        self.clear()
+        if config_dis.RESPONSE_BUTTONS_DIAGONAL == "on":
+            self._display_symbol(config_dis.LEFT_OPTION, self.bottom_left_canvas)
+            self._display_symbol(config_dis.RIGHT_OPTION, self.top_right_canvas)
+        else:
+            self._display_symbol(config_dis.LEFT_OPTION, self.left_canvas)
+            self._display_symbol(config_dis.RIGHT_OPTION, self.right_canvas)
+        self.options_displayed = True
+        self.tic = time.time()
+
+    def _display_symbol(self, symbol, canvas):
+        w = canvas.winfo_width()
+        h = canvas.winfo_height()
+        canvas.create_image(w / 2, h / 2, image=self.image_files[symbol], anchor=tk.CENTER)
+
+    def left_clicked(self, event=None):
+        if self.options_displayed:
+            self.is_correct = self.is_A
+            self._option_chosen("left")
+
+    def right_clicked(self, event=None):
+        if self.options_displayed:
+            self.is_correct = not self.is_A
+            self._option_chosen("right")
+
+    def _option_chosen(self, left_or_right):
+        if self.is_correct:
+            self.correct_choice()
+        else:
+            self.incorrect_choice()
+        self.write_to_file(left_or_right)
+        self.options_displayed = False
+
+    def write_to_file(self, left_or_right):
+        self.finished_trial_cnt += 1
+        self.update_success_frequency(self.is_correct)
+        if self.stimulus == self.A:
+            stimulus_acronym = "A"
+        else:  # presented == self.B:
+            stimulus_acronym = "B"
+
+        headers = ["freq_correct",
+                   "subject",
+                   "experiment",
+                   "date",
+                   "timestamp",
+                   "trial",
+                   "stimulus",
+                   "response",
+                   "is_correct",
+                   "response_time",
+                   "RESPONSE_BUTTONS_DIAGONAL",
+                   "SS_SOUND_A",
+                   "SS_SOUND_B",
+                   "SS_STIMULUS_TIME",
+                   "LEFT_OPTION",
+                   "RIGHT_OPTION",
+                   "BACKGROUND_COLOR",
+                   "NEXT_BUTTON_COLOR",
+                   "BLACKOUT_COLOR",
+                   "NEXT_BUTTON_WIDTH",
+                   "BLACKOUT_TIME",
+                   "DELAY_AFTER_REWARD"]
+
+        toc = time.time()
+        response_time = round(toc - self.tic, TIMETOL)
+        values = [self.success_frequency,
+                  config_dis.SUBJECT_TAG,
+                  self.experiment_abbreviation(),
+                  datestamp(),
+                  timestamp(),
+                  self.started_trial_cnt,
+                  stimulus_acronym,
+                  left_or_right,
+                  self.is_correct,
+                  response_time,
+                  config_dis.RESPONSE_BUTTONS_DIAGONAL,
+                  config_dis.SS_SOUND_A,
+                  config_dis.SS_SOUND_B,
+                  config_dis.SS_STIMULUS_TIME,
+                  config_dis.LEFT_OPTION,
+                  config_dis.RIGHT_OPTION,
+                  BACKGROUND_COLOR,
+                  NEXT_BUTTON_COLOR,
+                  BLACKOUT_COLOR,
+                  config_dis.NEXT_BUTTON_WIDTH,
+                  config_dis.BLACKOUT_TIME,
+                  config_dis.DELAY_AFTER_REWARD]
+
+        self.result_file.write(headers, values)
+
+    def experiment_abbreviation(self):
+        return config_dis.SINGLE_STIMULUS_DISCRIMINATION_SOUND
 
 
 class SingleStimulusVsSequence(Discrimination2):
@@ -1448,10 +1742,14 @@ if __name__ == '__main__':
     e = None
     if config_dis.EXPERIMENT == config_dis.SEQUENCE_DISCRIMINATION:
         e = SequenceDiscrimination2()
+    if config_dis.EXPERIMENT == config_dis.SEQUENCE_DISCRIMINATION_SOUND:
+        e = SequenceDiscriminationSound()
     elif config_dis.EXPERIMENT == config_dis.SINGLE_STIMULUS_DISCRIMINATION_OLD:
         e = SingleStimulusDiscrimination2_old()
     elif config_dis.EXPERIMENT == config_dis.SINGLE_STIMULUS_DISCRIMINATION:
         e = SingleStimulusDiscrimination()
+    elif config_dis.EXPERIMENT == config_dis.SINGLE_STIMULUS_DISCRIMINATION_SOUND:
+        e = SingleStimulusDiscriminationSound()
     elif config_dis.EXPERIMENT == config_dis.SINGLE_STIMULUS_VS_SEQ:
         e = SingleStimulusVsSequence()
     elif config_dis.EXPERIMENT == config_dis.SSDIS_PRETRAININGA_GO:

@@ -61,6 +61,7 @@ class Discrimination2():
         # The success frequency of the last 20 rounds
         self.success_frequency = 0
 
+        self.mid_canvas = None
         self._make_widgets()
         self._make_images()
 
@@ -231,6 +232,8 @@ class Discrimination2():
         self.bottom_frame.configure(background=color)
         # Canvases
         self.left_canvas.configure(background=color)
+        if self.mid_canvas:
+            self.mid_canvas.configure(background=color)
         self.right_canvas.configure(background=color)
         self.bottom_canvas.configure(background=color)
         self.bottom_left_canvas.configure(background=color)
@@ -244,6 +247,8 @@ class Discrimination2():
 
     def clear_canvases(self):
         self.left_canvas.delete(tk.ALL)
+        if self.mid_canvas:
+            self.mid_canvas.delete(tk.ALL)
         self.right_canvas.delete(tk.ALL)
         self.bottom_canvas.delete(tk.ALL)
         self.top_left_canvas.delete(tk.ALL)
@@ -1517,6 +1522,257 @@ class SingleStimulusDiscriminationSound(Discrimination2):
         return config_dis.SINGLE_STIMULUS_DISCRIMINATION_SOUND
 
 
+class SingleStimulusDiscriminationSymbol(Discrimination2):
+    """May 2019 design."""
+
+    def __init__(self):
+        super().__init__()
+        self.options_displayed = False
+        self.is_correct = True  # Initialize to True so that first sequence is taken from pot
+
+        self.A = config_dis.SS_STIMULUS_A
+        self.B = config_dis.SS_STIMULUS_B
+        self.POT10 = [self.A, self.B] * 5
+        self._create_new_sequences()
+
+    def _make_widgets(self):
+        self.root = tk.Tk()
+
+        W = self.root.winfo_screenwidth() * TOL
+        H = self.root.winfo_screenheight() * TOL
+        h = H / 3
+
+        self.canvas_width = h
+
+        # self.root.attributes('-zoomed', True)  # Maximize window
+
+        self.is_fullscreen = False
+        self.root.bind("<F11>", self.toggle_fullscreen)
+        self.root.bind("<Escape>", self.end_fullscreen)
+        self.root.bind("<space>", self.space_pressed)
+
+        # TOP
+        self.top_frame = tk.Frame(self.root, width=W, height=H * 0.25, **frame_options)
+
+        self.top_left_canvas = tk.Canvas(self.top_frame, width=self.canvas_width,
+                                         height=self.canvas_width, **canvas_options)
+        self.top_right_canvas = tk.Canvas(self.top_frame, width=self.canvas_width,
+                                          height=self.canvas_width, **canvas_options)
+        if config_dis.RESPONSE_BUTTONS_DIAGONAL == "on":
+            self.top_right_canvas.bind("<Button-1>", self.right_clicked)
+        self.top_left_canvas.pack(side=tk.LEFT)
+        self.top_right_canvas.pack(side=tk.RIGHT)
+
+        self.top_frame.pack_propagate(False)
+        self.top_frame.pack(expand=True, side=tk.TOP)
+
+        # MIDDLE
+        space_width = h * 1.5
+        self.middle_frame = tk.Frame(self.root, width=W, height=H * 0.5, **frame_options)
+
+        self.middle_left_frame = tk.Frame(self.middle_frame, width=(W - space_width) / 2,
+                                          height=H * 0.5, **frame_options)
+        self.middle_left_frame.pack_propagate(False)
+        self.middle_left_frame.pack(side=tk.LEFT)
+
+        self.middle_space_frame = tk.Frame(self.middle_frame, width=space_width, height=H * 0.5,
+                                           **frame_options)
+        self.middle_space_frame.pack_propagate(False)
+        self.middle_space_frame.pack(side=tk.LEFT)
+        self.middle_right_frame = tk.Frame(self.middle_frame, width=(W - space_width) / 2,
+                                           height=H * 0.5, **frame_options)
+        self.middle_right_frame.pack_propagate(False)
+        self.middle_right_frame.pack(side=tk.LEFT)
+
+        self.left_canvas = tk.Canvas(self.middle_left_frame, width=self.canvas_width,
+                                     height=self.canvas_width, **canvas_options)
+        if config_dis.RESPONSE_BUTTONS_DIAGONAL != "on":
+            self.left_canvas.bind("<Button-1>", self.left_clicked)
+        self.left_canvas.pack(side=tk.RIGHT)
+
+        self.right_canvas = tk.Canvas(self.middle_right_frame, width=self.canvas_width,
+                                      height=self.canvas_width, **canvas_options)
+        if config_dis.RESPONSE_BUTTONS_DIAGONAL != "on":
+            self.right_canvas.bind("<Button-1>", self.right_clicked)
+        self.right_canvas.pack(side=tk.LEFT)
+
+        self.mid_canvas = tk.Canvas(self.middle_space_frame, width=H * 0.5,  # self.canvas_width * 1.5,
+                                    height=H * 0.5, **canvas_options)
+        self.mid_canvas.pack(expand=True, fill=tk.BOTH)  # side=tk.CENTER)
+
+        self.middle_frame.pack_propagate(False)
+        self.middle_frame.pack(expand=True, side=tk.TOP, fill=tk.BOTH)
+
+        # BOTTOM
+        self.bottom_canvas_width = H * 0.23  # * config_dis.NEXT_BUTTON_WIDTH
+        self.bottom_frame = tk.Frame(self.root, width=W, height=H * 0.25, **frame_options)
+        self.bottom_canvas = tk.Canvas(self.bottom_frame, width=self.bottom_canvas_width,
+                                       height=self.bottom_canvas_width, **canvas_options)
+        self.bottom_left_canvas = tk.Canvas(self.bottom_frame, width=self.canvas_width,
+                                            height=self.canvas_width, **canvas_options)
+        if config_dis.RESPONSE_BUTTONS_DIAGONAL == "on":
+            self.bottom_left_canvas.bind("<Button-1>", self.left_clicked)
+        self.bottom_right_canvas = tk.Canvas(self.bottom_frame, width=self.canvas_width,
+                                             height=self.canvas_width, **canvas_options)
+        self.bottom_left_canvas.pack(side=tk.LEFT)
+        self.bottom_right_canvas.pack(side=tk.RIGHT)
+        self.bottom_canvas.bind("<Button-1>", self.next_clicked)
+        self.bottom_canvas.pack(expand=True)
+
+        self.bottom_frame.pack_propagate(False)
+        self.bottom_frame.pack(expand=True, side=tk.BOTTOM)
+
+        self.root.update()
+        w = self.bottom_canvas.winfo_width()
+        pw = w * 0.1
+        d1 = w / 2 - pw / 2
+        d2 = w / 2 + pw / 2
+        self.next_symbol_args = [0, d1,
+                                 d1, d1,
+                                 d1, 0,
+                                 d2, 0,
+                                 d2, d1,
+                                 w, d1,
+                                 w, d2,
+                                 d2, d2,
+                                 d2, w,
+                                 d1, w,
+                                 d1, d2,
+                                 0, d2]
+
+        if config_dis.HIDE_MOUSE_POINTER:
+            # Hide mouse pointer
+            self.root.config(cursor="none")
+
+        self.root.title("vera")
+
+    def _create_new_sequences(self):
+        self.stimuli_pot = list(self.POT10)  # Make a copy
+        random.shuffle(self.stimuli_pot)
+
+    def start_trial(self, event=None):
+        self.clear()
+        self.display_random_stimulus()
+        job = self.root.after(config_dis.SS_STIMULUS_TIME, self.display_options)
+        self.current_after_jobs = [job]
+
+    def display_random_stimulus(self):
+        if config_dis.USE_CORRECTION_TRIALS == "on":
+            if self.is_correct:  # Pick from pot
+                self.stimulus = self.stimuli_pot.pop()
+            else:
+                pass  # Repeat the previous stimulus (i.e. keep self.stimulus)
+        else:
+            self.stimulus = self.stimuli_pot.pop()
+        if len(self.stimuli_pot) == 0:
+            self._create_new_sequences()
+
+        # self._set_entire_screen_color(self.stimulus)
+        self._display_symbol_zoom(self.stimulus, self.mid_canvas)
+        self.is_A = (self.stimulus == self.A)
+
+    def display_options(self):
+        self.clear()
+        if config_dis.RESPONSE_BUTTONS_DIAGONAL == "on":
+            self._display_symbol(config_dis.LEFT_OPTION, self.bottom_left_canvas)
+            self._display_symbol(config_dis.RIGHT_OPTION, self.top_right_canvas)
+        else:
+            self._display_symbol(config_dis.LEFT_OPTION, self.left_canvas)
+            self._display_symbol(config_dis.RIGHT_OPTION, self.right_canvas)
+        self.options_displayed = True
+        self.tic = time.time()
+
+    def _display_symbol_zoom(self, symbol, canvas):
+        w = canvas.winfo_width()
+        h = canvas.winfo_height()
+        self.img = self.image_files[symbol].zoom(3).subsample(2)
+        canvas.create_image(w / 2, h / 2, image=self.img, anchor=tk.CENTER)
+
+    def _display_symbol(self, symbol, canvas):
+        w = canvas.winfo_width()
+        h = canvas.winfo_height()
+        canvas.create_image(w / 2, h / 2, image=self.image_files[symbol], anchor=tk.CENTER)
+
+    def left_clicked(self, event=None):
+        if self.options_displayed:
+            self.is_correct = self.is_A
+            self._option_chosen("left")
+
+    def right_clicked(self, event=None):
+        if self.options_displayed:
+            self.is_correct = not self.is_A
+            self._option_chosen("right")
+
+    def _option_chosen(self, left_or_right):
+        if self.is_correct:
+            self.correct_choice()
+        else:
+            self.incorrect_choice()
+        self.write_to_file(left_or_right)
+        self.options_displayed = False
+
+    def write_to_file(self, left_or_right):
+        self.finished_trial_cnt += 1
+        self.update_success_frequency(self.is_correct)
+        if self.stimulus == self.A:
+            stimulus_acronym = "A"
+        else:  # presented == self.B:
+            stimulus_acronym = "B"
+
+        headers = ["freq_correct",
+                   "subject",
+                   "experiment",
+                   "date",
+                   "timestamp",
+                   "trial",
+                   "stimulus",
+                   "response",
+                   "is_correct",
+                   "response_time",
+                   "RESPONSE_BUTTONS_DIAGONAL",
+                   "SS_COLOR_A",
+                   "SS_COLOR_B",
+                   "SS_STIMULUS_TIME",
+                   "LEFT_OPTION",
+                   "RIGHT_OPTION",
+                   "BACKGROUND_COLOR",
+                   "NEXT_BUTTON_COLOR",
+                   "BLACKOUT_COLOR",
+                   "NEXT_BUTTON_WIDTH",
+                   "BLACKOUT_TIME",
+                   "DELAY_AFTER_REWARD"]
+
+        toc = time.time()
+        response_time = round(toc - self.tic, TIMETOL)
+        values = [self.success_frequency,
+                  config_dis.SUBJECT_TAG,
+                  self.experiment_abbreviation(),
+                  datestamp(),
+                  timestamp(),
+                  self.started_trial_cnt,
+                  stimulus_acronym,
+                  left_or_right,
+                  self.is_correct,
+                  response_time,
+                  config_dis.RESPONSE_BUTTONS_DIAGONAL,
+                  SS_COLOR_A,
+                  SS_COLOR_B,
+                  config_dis.SS_STIMULUS_TIME,
+                  config_dis.LEFT_OPTION,
+                  config_dis.RIGHT_OPTION,
+                  BACKGROUND_COLOR,
+                  NEXT_BUTTON_COLOR,
+                  BLACKOUT_COLOR,
+                  config_dis.NEXT_BUTTON_WIDTH,
+                  config_dis.BLACKOUT_TIME,
+                  config_dis.DELAY_AFTER_REWARD]
+
+        self.result_file.write(headers, values)
+
+    def experiment_abbreviation(self):
+        return config_dis.SINGLE_STIMULUS_DISCRIMINATION_SYMBOL
+
+
 class SingleStimulusVsSequence(Discrimination2):
     """April 2019 design."""
 
@@ -1750,6 +2006,8 @@ if __name__ == '__main__':
         e = SingleStimulusDiscrimination()
     elif config_dis.EXPERIMENT == config_dis.SINGLE_STIMULUS_DISCRIMINATION_SOUND:
         e = SingleStimulusDiscriminationSound()
+    elif config_dis.EXPERIMENT == config_dis.SINGLE_STIMULUS_DISCRIMINATION_SYMBOL:
+        e = SingleStimulusDiscriminationSymbol()
     elif config_dis.EXPERIMENT == config_dis.SINGLE_STIMULUS_VS_SEQ:
         e = SingleStimulusVsSequence()
     elif config_dis.EXPERIMENT == config_dis.SSDIS_PRETRAININGA_GO:

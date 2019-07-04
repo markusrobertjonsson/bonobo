@@ -616,9 +616,9 @@ class SimultaneousPresentation(Experiment):
 
 
 class SimultaneousPresentationOverlap(Experiment):
-    def __init__(self, overlap_time):
+    def __init__(self):
         super().__init__()
-        self.overlap_time = overlap_time
+        self.overlap_time = config.OVERLAP_TIME
         self.options_displayed = False
         self.is_correct = None
         self.POT10 = [COLOR_A, COLOR_B] * 5
@@ -891,7 +891,7 @@ if __name__ == '__main__':
     elif config.EXPERIMENT == config.SIMULTANEOUS_PRESENTATION:
         e = SimultaneousPresentation()
     elif config.EXPERIMENT == config.SIMULTANEOUS_PRESENTATION_OVERLAP:
-        e = SimultaneousPresentationOverlap(1000)
+        e = SimultaneousPresentationOverlap()
     elif config.EXPERIMENT == config.SEQUENCE_DISCRIMINATION_PROBE:
         e = SequenceDiscriminationProbe()
     else:

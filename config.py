@@ -4,10 +4,11 @@ SIMULTANEOUS_PRESENTATION = "SimulataneousPresentation"
 SIMULTANEOUS_PRESENTATION_OVERLAP = "SimulataneousPresentationOverlap"
 SEQUENCE_DISCRIMINATION_PROBE = "SequenceDiscriminationProbe"
 
+
 # The experiment to run. Remove the "#" before the one to run.
-EXPERIMENT = PRETRAINING
+# EXPERIMENT = PRETRAINING
 # EXPERIMENT = SIMULTANEOUS_PRESENTATION
-# EXPERIMENT = SIMULTANEOUS_PRESENTATION_OVERLAP
+EXPERIMENT = SIMULTANEOUS_PRESENTATION_OVERLAP
 # EXPERIMENT = SEQUENCE_DISCRIMINATION_PROBE
 
 # The subject exposed to the experiment. Used in the name of the result file and
@@ -79,6 +80,9 @@ UNDESIRED_CLICK_BLACKOUT_COLOR_RGB = (100, 100, 100)
 
 # The time (in milliseconds) that the stimulus is presented, before the response buttons appear
 STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS = 2000
+
+# The time (in ms) that both stimulus and response buttons are diaplyed together
+OVERLAP_TIME = 250
 
 
 #################################

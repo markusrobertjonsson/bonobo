@@ -5,11 +5,10 @@ import config
 import csv
 import time
 import os
+from tkinter import PhotoImage
 from sys import platform
 from datetime import datetime
-from math import sqrt  # , sin, cos, pi
-
-# if platform == "linux" or platform == "linux2":
+from math import ceil  # sqrt  # , sin, cos, pi
 
 use_simpleaudio = True
 try:
@@ -24,28 +23,23 @@ random.seed()
 
 hex_format = "#%02x%02x%02x"
 START_SCREEN_COLOR = hex_format % config.START_SCREEN_COLOR_RGB
-if config.EXPERIMENT in (config.SINGLE_STIMULUS_DISCRIMINATION,
-                         config.SINGLE_STIMULUS_DISCRIMINATION_WITH_PRACTICE,
-                         config.SEQUENCE_DISCRIMINATION):
-    BACKGROUND_COLOR = hex_format % config.DISCRIMINATION_BACKGROUND_COLOR_RGB
-else:
-    BACKGROUND_COLOR = hex_format % config.BACKGROUND_COLOR_RGB
-SEPARATOR_COLOR = hex_format % config.SEPARATOR_COLOR_RGB
+BACKGROUND_COLOR = hex_format % config.BACKGROUND_COLOR_RGB
 NEXT_BUTTON_COLOR = hex_format % config.NEXT_BUTTON_COLOR_RGB
-GO_BUTTON_COLOR = hex_format % config.GO_BUTTON_COLOR_RGB
 BLACKOUT_COLOR = hex_format % config.BLACKOUT_COLOR_RGB
-DISCRIMINATION_LEFT_COLOR = hex_format % config.DISCRIMINATION_LEFT_COLOR_RGB
-DISCRIMINATION_RIGHT_COLOR = hex_format % config.DISCRIMINATION_RIGHT_COLOR_RGB
+UNDESIRED_CLICK_BLACKOUT_COLOR = hex_format % config.UNDESIRED_CLICK_BLACKOUT_COLOR_RGB
+COLOR_A = hex_format % config.COLOR_A_RGB
+COLOR_B = hex_format % config.COLOR_B_RGB
 
 frame_options = dict()  # For debugging frame positioning
-# {'highlightbackground': 'blue',
+# frame_options = {'highlightbackground': 'blue',
 #                  'highlightcolor': 'blue',
 #                  'highlightthickness': 1,
 #                  'bd': 0}
 
 canvas_options = {'bd': 0, 'highlightthickness': 0}
+# canvas_options = {'bd': 3, 'highlightthickness': 3}
 
-TOL = 0.99
+TOL = 0.49
 TIMETOL = 3  # Round delay times to nearest millisecond
 
 
@@ -53,7 +47,10 @@ class Experiment():
     def __init__(self):
         filename = self.result_filename()
         self.result_file = ResultFile(filename)
-        self.trial_cnt = 0
+        self.started_trial_cnt = 0
+        self.finished_trial_cnt = 0
+        self.clicked_option = None
+        self.last_clicked_button_canvas = "None"
 
         # Current self.root.after jobs. They are stored to be able to cancel them in space_pressed.
         self.current_after_jobs = []
@@ -65,12 +62,35 @@ class Experiment():
         self.success_frequency = 0
 
         self._make_widgets()
+        self._make_images()
 
         self.set_background_color(BACKGROUND_COLOR)
         self.next_displayed = False
         self.go_displayed = False
+        self.stimulus_displayed = False
+        self.blackout_displayed = False
         self.pause_screen_displayed = False
+        self.snack_time = False
         self.display_pause_screen()
+
+    def _make_images(self):
+        self.image_files = {'circle.gif': PhotoImage(file='circle.gif'),
+                            'diamond.gif': PhotoImage(file='diamond.gif'),
+                            'star.gif': PhotoImage(file='star.gif'),
+                            'balls.gif': PhotoImage(file='balls.gif'),
+                            'blue_circles.gif': PhotoImage(file='blue_circles.gif'),
+                            'yellow_diamond.gif': PhotoImage(file='yellow_diamond.gif'),
+                            'green_circles.gif': PhotoImage(file='green_circles.gif'),
+                            'red_circles.gif': PhotoImage(file='red_circles.gif'),
+                            'red_diamond.gif': PhotoImage(file='red_diamond.gif'),
+                            'horizontal_lines.gif': PhotoImage(file='horizontal_lines.gif'),
+                            'vertical_lines.gif': PhotoImage(file='vertical_lines.gif'),
+                            'horizontal_button.gif': PhotoImage(file='horizontal_button.gif'),
+                            'vertical_button.gif': PhotoImage(file='vertical_button.gif')}
+        self.root.update()
+        for key, image_file in self.image_files.items():
+            scaling_factor = ceil(image_file.width() / self.left_canvas.winfo_width())
+            self.image_files[key] = image_file.subsample(scaling_factor)
 
     def _make_widgets(self):
         self.root = tk.Tk()
@@ -79,83 +99,81 @@ class Experiment():
         H = self.root.winfo_screenheight() * TOL
         h = H / 3
 
-        # Width (and height) of stimulus symbol
-        self.L = h * config.SYMBOL_WIDTH
+        self.canvas_width = h
 
         # self.root.attributes('-zoomed', True)  # Maximize window
 
         self.is_fullscreen = False
         self.root.bind("<F11>", self.toggle_fullscreen)
         self.root.bind("<Escape>", self.end_fullscreen)
-        self.root.bind("<F5>", self.start_trial)
         self.root.bind("<space>", self.space_pressed)
+        self.root.bind("<Button-1>", self.undesired_click)
 
         # TOP
-        self.top_frame = tk.Frame(self.root, height=h, width=W, **frame_options)
-        self.top_canvas = tk.Canvas(self.top_frame, height=self.L, width=self.L, **canvas_options)
-        self.top_canvas.tag_bind("shape", "<Button-1>", self.top_image_clicked)
-        self.top_canvas.pack(expand=True)
+        self.top_frame = tk.Frame(self.root, width=W, height=h, **frame_options)
+
+        self.top_left_canvas = tk.Canvas(self.top_frame, width=self.canvas_width,
+                                         height=self.canvas_width, **canvas_options)
+        self.top_right_canvas = tk.Canvas(self.top_frame, width=self.canvas_width,
+                                          height=self.canvas_width, **canvas_options)
+        self.top_right_canvas.bind("<Button-1>", self.right_clicked)
+        self.top_left_canvas.pack(side=tk.LEFT)
+        self.top_right_canvas.pack(side=tk.RIGHT)
 
         self.top_frame.pack_propagate(False)
         self.top_frame.pack(expand=True, side=tk.TOP)
 
-        # SEPARATOR1
-        self.separator1 = tk.Frame(height=4, background=SEPARATOR_COLOR, bd=0,
-                                   highlightthickness=0)
-        self.separator1.pack(fill=tk.X, padx=0, pady=0)
-
         # MIDDLE
-        self.middle_frame = tk.Frame(self.root, height=h, width=W, **frame_options)
+        space_width = h / 3
+        self.middle_frame = tk.Frame(self.root, width=W, height=h, **frame_options)
 
-        fw = (W - h) / 2
+        self.middle_left_frame = tk.Frame(self.middle_frame, width=(W - space_width) / 2, height=h,
+                                          **frame_options)
+        self.middle_left_frame.pack_propagate(False)
+        self.middle_left_frame.pack(side=tk.LEFT)
 
-        # Left
-        self.middle_lframe = tk.Frame(self.middle_frame, height=h, width=fw, **frame_options)
-        self.middle_lcanvas = tk.Canvas(self.middle_lframe, height=self.L, width=self.L,
-                                        **canvas_options)
-        # self.middle_lcanvas.tag_bind("shape", "<Button-1>", self.middle_limage_clicked)
-        self.middle_lcanvas.bind("<Button-1>", self.middle_limage_clicked)
-        self.middle_lcanvas.pack(side=tk.RIGHT)
-        self.middle_lframe.pack_propagate(False)
-        self.middle_lframe.pack(side=tk.LEFT)
+        self.middle_space_frame = tk.Frame(self.middle_frame, width=space_width, height=h,
+                                           **frame_options)
+        self.middle_space_frame.pack_propagate(False)
+        self.middle_space_frame.pack(side=tk.LEFT)
+        self.middle_right_frame = tk.Frame(self.middle_frame, width=(W - space_width) / 2,
+                                           height=h, **frame_options)
+        self.middle_right_frame.pack_propagate(False)
+        self.middle_right_frame.pack(side=tk.LEFT)
 
-        # Middle
-        self.go_frame = tk.Frame(self.middle_frame, height=h, width=h, **frame_options)
-        self.go_canvas_width = config.GO_BUTTON_WIDTH * h
-        self.go_canvas = tk.Canvas(self.go_frame, height=self.go_canvas_width,
-                                   width=self.go_canvas_width, **canvas_options)
-        self.go_canvas.bind("<Button-1>", self.go_clicked)
-        self.go_canvas.pack(expand=True)
-        self.go_frame.pack_propagate(False)
-        self.go_frame.pack(side=tk.LEFT)
+        self.left_canvas = tk.Canvas(self.middle_left_frame, width=self.canvas_width,
+                                     height=self.canvas_width, **canvas_options)
+        # self.left_canvas.bind("<Button-1>", self.left_clicked)
+        self.left_canvas.pack(side=tk.RIGHT)
 
-        # Right
-        self.middle_rframe = tk.Frame(self.middle_frame, height=h, width=fw, **frame_options)
-        self.middle_rcanvas = tk.Canvas(self.middle_rframe, height=self.L, width=self.L,
-                                        **canvas_options)
-        # self.middle_rcanvas.tag_bind("shape", "<Button-1>", self.middle_rimage_clicked)
-        self.middle_rcanvas.bind("<Button-1>", self.middle_rimage_clicked)
-        self.middle_rcanvas.pack(side=tk.LEFT)
-        self.middle_rframe.pack_propagate(False)
-        self.middle_rframe.pack(side=tk.LEFT)
+        self.right_canvas = tk.Canvas(self.middle_right_frame, width=self.canvas_width,
+                                      height=self.canvas_width, **canvas_options)
+        # self.right_canvas.bind("<Button-1>", self.right_clicked)
+        self.right_canvas.pack(side=tk.LEFT)
 
         self.middle_frame.pack_propagate(False)
         self.middle_frame.pack(expand=True, side=tk.TOP)
 
-        # SEPARATOR2
-        self.separator2 = tk.Frame(height=4, background=SEPARATOR_COLOR, bd=0,
-                                   highlightthickness=0)
-        self.separator2.pack(fill=tk.X, padx=0, pady=0)
-
         # BOTTOM
-        self.next_frame = tk.Frame(self.root, height=h, width=W, **frame_options)
-        self.next_canvas_width = h * config.NEXT_BUTTON_WIDTH
-        self.next_canvas = tk.Canvas(self.next_frame, height=self.next_canvas_width,
-                                     width=self.next_canvas_width, **canvas_options)
-        self.next_canvas.bind("<Button-1>", self.next_clicked)
-        self.next_canvas.pack(expand=True)
+        self.bottom_canvas_width = h * config.NEXT_BUTTON_WIDTH
+        self.bottom_frame = tk.Frame(self.root, width=W, height=h, **frame_options)
+        self.bottom_canvas = tk.Canvas(self.bottom_frame, width=self.bottom_canvas_width,
+                                       height=self.bottom_canvas_width, **canvas_options)
+        self.bottom_left_canvas = tk.Canvas(self.bottom_frame, width=self.canvas_width,
+                                            height=self.canvas_width, **canvas_options)
+        self.bottom_left_canvas.bind("<Button-1>", self.left_clicked)
+        self.bottom_right_canvas = tk.Canvas(self.bottom_frame, width=self.canvas_width,
+                                             height=self.canvas_width, **canvas_options)
+        self.bottom_left_canvas.pack(side=tk.LEFT)
+        self.bottom_right_canvas.pack(side=tk.RIGHT)
+        self.bottom_canvas.bind("<Button-1>", self.next_clicked)
+        self.bottom_canvas.pack(expand=True)
 
-        w = self.next_canvas_width
+        self.bottom_frame.pack_propagate(False)
+        self.bottom_frame.pack(expand=True, side=tk.BOTTOM)
+
+        self.root.update()
+        w = self.bottom_canvas.winfo_width()
         pw = w * 0.1
         d1 = w / 2 - pw / 2
         d2 = w / 2 + pw / 2
@@ -172,12 +190,11 @@ class Experiment():
                                  d1, d2,
                                  0, d2]
 
-        self.next_frame.pack_propagate(False)
-        self.next_frame.pack(expand=True, side=tk.TOP)
-
         if config.HIDE_MOUSE_POINTER:
             # Hide mouse pointer
             self.root.config(cursor="none")
+
+        self.root.title("vera")
 
     def toggle_fullscreen(self, event=None):
         self.is_fullscreen = not self.is_fullscreen  # Just toggling the boolean
@@ -189,24 +206,19 @@ class Experiment():
         self.root.attributes("-fullscreen", False)
         return "break"
 
-    def top_frame_clicked(self, event=None):
-        pass
-
-    def top_image_clicked(self, event=None):
-        pass
-
-    def blackout(self):
-        self._set_entire_screen_color(BLACKOUT_COLOR)
+    def blackout(self, color=BLACKOUT_COLOR):
+        self._set_entire_screen_color(color)
+        self.blackout_displayed = True
 
     def display_pause_screen(self):
         self._set_entire_screen_color(START_SCREEN_COLOR)
         self.pause_screen_displayed = True
+        self.blackout_displayed = False
+        self.snack_time = False
 
     def _set_entire_screen_color(self, color):
         self.clear_canvases()
         self.set_background_color(color)
-        self.separator1.configure(background=color)
-        self.separator2.configure(background=color)
 
     def set_background_color(self, color):
         # Root
@@ -214,101 +226,63 @@ class Experiment():
         # Frames
         self.top_frame.configure(background=color)
         self.middle_frame.configure(background=color)
-        self.middle_lframe.configure(background=color)
-        self.go_frame.configure(background=color)
-        self.middle_rframe.configure(background=color)
-        self.next_frame.configure(background=color)
+        self.middle_left_frame.configure(background=color)
+        self.middle_space_frame.configure(background=color)
+        self.middle_right_frame.configure(background=color)
+        self.bottom_frame.configure(background=color)
         # Canvases
-        self.top_canvas.configure(background=color)
-        self.middle_lcanvas.configure(background=color)
-        self.go_canvas.configure(background=color)
-        self.middle_rcanvas.configure(background=color)
-        self.next_canvas.configure(background=color)
+        self.left_canvas.configure(background=color)
+        self.right_canvas.configure(background=color)
+        self.bottom_canvas.configure(background=color)
+        self.bottom_left_canvas.configure(background=color)
+        self.bottom_right_canvas.configure(background=color)
+        self.top_left_canvas.configure(background=color)
+        self.top_right_canvas.configure(background=color)
 
     def clear(self):
         self.set_background_color(BACKGROUND_COLOR)
-        self.separator1.configure(background=SEPARATOR_COLOR)
-        self.separator2.configure(background=SEPARATOR_COLOR)
         self.clear_canvases()
 
     def clear_canvases(self):
-        self.top_canvas.delete(tk.ALL)
-        self.middle_lcanvas.delete(tk.ALL)
-        self.go_canvas.delete(tk.ALL)
-        self.middle_rcanvas.delete(tk.ALL)
-        self.next_canvas.delete(tk.ALL)
+        self.left_canvas.delete(tk.ALL)
+        self.right_canvas.delete(tk.ALL)
+        self.bottom_canvas.delete(tk.ALL)
+        self.top_left_canvas.delete(tk.ALL)
+        self.top_right_canvas.delete(tk.ALL)
+        self.bottom_left_canvas.delete(tk.ALL)
+        self.bottom_right_canvas.delete(tk.ALL)
         self.next_displayed = False
         self.go_displayed = False
+        self.stimulus_displayed = False
+        if hasattr(self, "options_displayed"):
+            self.options_displayed = False
+        if hasattr(self, "left_option_displayed"):
+            self.left_option_displayed = False
+        if hasattr(self, "right_option_displayed"):
+            self.right_option_displayed = False
 
     def show_only_next(self):
         self.clear()
         self.display_next()
 
     def display_next(self):
-        self.next_canvas.create_polygon(*self.next_symbol_args, fill=NEXT_BUTTON_COLOR,
-                                        outline=NEXT_BUTTON_COLOR)
+        self.bottom_canvas.create_polygon(*self.next_symbol_args, fill=NEXT_BUTTON_COLOR,
+                                          outline='', width=0)
         self.next_displayed = True
 
-    def show_only_go(self):
-        self.clear()
-        self.display_go()
-
-    def display_go(self):
-        L = self.go_canvas_width * 0.99
-        self.go_canvas.create_oval(0, 0, L, L, fill=GO_BUTTON_COLOR, outline=GO_BUTTON_COLOR)
-        self.go_displayed = True
-
-    def display_symbol(self, symbol, canvas):
-        L = self.L * 0.99  # self.top_frame.winfo_height() * config.SYMBOL_WIDTH
-        if symbol == 'redtriangle':
-            S = sqrt(3) / 2
-            canvas.create_polygon(0, L * (S + 1) / 2, L, L * (S + 1) / 2, L / 2, L * (1 - S) / 2,
-                                  fill='red', outline="", tags="shape")
-        elif symbol == 'bluecircle':
-            canvas.create_oval(0, 0, L, L, fill='blue', outline="", tags="shape")
-        elif symbol == 'greensquare':
-            canvas.create_rectangle(0, 0, L, L, fill='green', outline="", tags="shape")
-        elif symbol == 'bluetriangle':
-            S = sqrt(3) / 2
-            canvas.create_polygon(0, L * (S + 1) / 2, L, L * (S + 1) / 2, L / 2, L * (1 - S) / 2,
-                                  fill='blue', outline="", tags="shape")
-        elif symbol == 'greencircle':
-            canvas.create_oval(0, 0, L, L, fill='green', outline="", tags="shape")
-        elif symbol == 'redsquare':
-            canvas.create_rectangle(0, 0, L, L, fill='red', outline="", tags="shape")
-        elif symbol == 'greentriangle':
-            S = sqrt(3) / 2
-            canvas.create_polygon(0, L * (S + 1) / 2, L, L * (S + 1) / 2, L / 2, L * (1 - S) / 2,
-                                  fill='green', outline="", tags="shape")
-        elif symbol == 'redcircle':
-            canvas.create_oval(0, 0, L, L, fill='red', outline="", tags="shape")
-        elif symbol == 'bluesquare':
-            canvas.create_rectangle(0, 0, L, L, fill='blue', outline="", tags="shape")
-        elif symbol == 'yellowcircle':
-            canvas.create_oval(0, 0, L, L, fill='yellow', outline="", tags="shape")
-        elif symbol == 'yellowsquare':
-            canvas.create_rectangle(0, 0, L, L, fill='yellow', outline="", tags="shape")
-        elif symbol == 'yellowtriangle':
-            S = sqrt(3) / 2
-            canvas.create_polygon(0, L * (S + 1) / 2, L, L * (S + 1) / 2, L / 2, L * (1 - S) / 2,
-                                  fill='yellow', outline="", tags="shape")
-
-        elif symbol == 'lightbluesquare':
-            canvas.create_rectangle(0, 0, L, L, fill=hex_format % (51, 153, 255), outline="",
-                                    tags="shape")
-        elif symbol == 'orangesquare':
-            canvas.create_rectangle(0, 0, L, L, fill=hex_format % (255, 128, 0), outline="",
-                                    tags="shape")
-        else:
-            raise Exception("Unknown symbol {}".format(symbol))
-
-    def display_symbol_top(self, symbol):
-        self.display_symbol(symbol, self.top_canvas)
+    def display_stimulus_symbol(self, symbol, canvas):
+        w = canvas.winfo_width()
+        h = canvas.winfo_height()
+        canvas.create_image(w / 2, h / 2, image=self.image_files[symbol], anchor=tk.CENTER)
+        self.stimulus_displayed = True
 
     def next_clicked(self, event=None):
+        self.last_clicked_button_canvas = "NB"
         if self.next_displayed:
-            self.trial_cnt += 1
+            self.next_displayed = False
+            self.started_trial_cnt += 1
             self.start_trial()
+            return "break"  # To detect "undesired clicks" outside any button
 
     def space_pressed(self, event=None):
         if self.pause_screen_displayed:
@@ -319,33 +293,40 @@ class Experiment():
             self.cancel_all_after_jobs()
 
     def get_ready_to_start_trial(self):
-        if self.trial_cnt >= config.TRIALS_BEFORE_PAUSE:
+        self.blackout_displayed = False
+        self.snack_time = False
+        if self.finished_trial_cnt >= config.TRIALS_BEFORE_PAUSE:
             self.display_pause_screen()
-            self.trial_cnt = 0
+            self.finished_trial_cnt = 0
         else:
             self.clear()
             self.display_next()
 
     def cancel_all_after_jobs(self):
-        for j in self.current_after_jobs:
-            self.root.after_cancel(j)
+        for ind, job in enumerate(self.current_after_jobs):
+            self.root.after_cancel(job)
+            self.current_after_jobs[ind] = None
         self.current_after_jobs = []
-
-    def middle_limage_clicked(self, event=None):
-        pass
-        # assert(False)  # Must be overloaded
-
-    def middle_rimage_clicked(self, event=None):
-        pass
-        # assert(False)  # Must be overloaded
 
     def start_trial(self, event=None):
         pass
         # assert(False)  # Must be overloaded
 
-    def go_clicked(self, event=None):
-        pass
-        # assert(False)  # Must be overloaded
+    def left_clicked(self, event=None):
+        self.last_clicked_button_canvas = "R1"
+        self.clicked_option = "left"
+        return self._left_clicked(event)
+
+    def right_clicked(self, event=None):
+        self.last_clicked_button_canvas = "R2"
+        self.clicked_option = "right"
+        return self._right_clicked(event)
+
+    def _left_clicked(event):
+        assert(False)  # Must be overridden
+
+    def _right_clicked(event):
+        assert(False)  # Must be overridden
 
     def result_filename(self):
         """
@@ -357,6 +338,8 @@ class Experiment():
         return subject + "_" + experiment + "_" + date + ".csv"
 
     def update_success_frequency(self, is_correct):
+        if is_correct is None:  # For example for probe trials
+            return
         self.success_list.append(int(is_correct))
         if len(self.success_list) > 20:
             self.success_list.pop(0)
@@ -368,653 +351,486 @@ class Experiment():
     def correct_choice(self):
         self.clear()
         play_correct()
+        self.snack_time = True
         job = self.root.after(config.DELAY_AFTER_REWARD, self.get_ready_to_start_trial)
         self.current_after_jobs = [job]
 
     def incorrect_choice(self):
+        # self.cancel_all_after_jobs()
         self.blackout()
         play_incorrect()
         job = self.root.after(config.BLACKOUT_TIME, self.get_ready_to_start_trial)
         self.current_after_jobs = [job]
 
+    def undesired_click(self, event=None):
+        # self.cancel_all_after_jobs()
+        # self.blackout(UNDESIRED_CLICK_BLACKOUT_COLOR)
+        # job = self.root.after(config.UNDESIRED_CLICK_BLACKOUT_TIME, self.get_ready_to_start_trial)
+        # self.current_after_jobs = [job]
+        self.write_to_file(event=event, is_undesired=True)
 
-class NextButtonTraining(Experiment):
-    def __init__(self):
-        super().__init__()
-        self.tic = time.time()
-
-    def start_trial(self, event=None):
-        self.write_to_file()
-        self.clear()
-        play_correct()
-        job = self.root.after(config.DELAY_AFTER_REWARD, self.get_ready_to_start_trial)
-        self.current_after_jobs = [job]
-
-    def get_ready_to_start_trial(self):
-        super().get_ready_to_start_trial()
-        self.tic = time.time()
-
-    def write_to_file(self):
-        headers = ["subject",
-                   "experiment",
-                   "date",
-                   "timestamp",
-                   "trial",
-                   "response_time",
-                   "BACKGROUND_COLOR",
-                   "SEPARATOR_COLOR",
-                   "NEXT_BUTTON_COLOR",
-                   "NEXT_BUTTON_WIDTH",
-                   "SOUND_CORRECT"]
-
+    def write_to_file(self, event, is_undesired=False):
+        if not is_undesired:
+            self.finished_trial_cnt += 1
+        stimulus_acronym = "None"
+        if hasattr(self, "stimulus") and self.stimulus is not None:
+            if self.stimulus == COLOR_A:
+                stimulus_acronym = "A"
+            else:
+                stimulus_acronym = "B"
         toc = time.time()
-        response_time = round(toc - self.tic, TIMETOL)
-        values = [config.SUBJECT_TAG,
-                  self.experiment_abbreviation(),
-                  datestamp(),
-                  timestamp(),
-                  self.trial_cnt,
-                  response_time,
-                  BACKGROUND_COLOR,
-                  SEPARATOR_COLOR,
-                  NEXT_BUTTON_COLOR,
-                  config.NEXT_BUTTON_WIDTH,
-                  config.SOUND_CORRECT]
+        response_time = None
+        if hasattr(self, "tic") and self.tic is not None:
+            response_time = round(toc - self.tic, TIMETOL)
 
+        file_data = list()
+        if self.success_frequency is not None:
+            self.update_success_frequency(self.is_correct)
+            file_data.extend([("freq_correct", self.success_frequency)])
+
+        file_data.extend([("subject", config.SUBJECT_TAG),
+                          ("experiment", self.experiment_abbreviation()),
+                          ("date", datestamp()),
+                          ("timestamp", timestamp()),
+                          ("trial", self.started_trial_cnt),
+                          ("stimulus", stimulus_acronym),
+                          ("response", self.clicked_option)])
+
+        if self.success_frequency is not None:
+            file_data.extend([("is_correct", self.is_correct)])
+
+        file_data.extend([("response_time", response_time)])
+
+        # Add experiment specific data
+        file_data.extend(self.get_file_data())
+
+        file_data.extend([("COLOR_A", COLOR_A),
+                          ("COLOR_B", COLOR_B),
+                          ("LEFT_OPTION", config.LEFT_OPTION),
+                          ("RIGHT_OPTION", config.RIGHT_OPTION),
+                          ("BACKGROUND_COLOR", BACKGROUND_COLOR),
+                          ("NEXT_BUTTON_COLOR", NEXT_BUTTON_COLOR),
+                          ("BLACKOUT_COLOR", BLACKOUT_COLOR),
+                          ("NEXT_BUTTON_WIDTH", config.NEXT_BUTTON_WIDTH),
+                          ("BLACKOUT_TIME", config.BLACKOUT_TIME),
+                          ("DELAY_AFTER_REWARD", config.DELAY_AFTER_REWARD)])
+
+        # The coordinate of the click
+        x = y = "None"
+        if event is not None:
+            x = event.x_root
+            y = event.y_root
+        file_data.extend([("x", x), ("y", y)])
+
+        # The "undesired click" related data
+        file_data.extend([("undesired_touch", is_undesired)])
+
+        screen_touched = self._screen_touched()
+        file_data.extend([("screen_touched", screen_touched)])
+
+        cell_touched = self._cell_touched(x, y)
+        file_data.extend([("cell_touched", cell_touched)])
+
+        button_touched = self.last_clicked_button_canvas
+        file_data.extend([("button_touched", button_touched)])
+        self.last_clicked_button_canvas = "None"  # Reset for next click
+
+        headers = list()
+        values = list()
+        for data in file_data:
+            header, value = data
+            if data is None:
+                data = "None"
+            headers.append(header)
+            values.append(value)
         self.result_file.write(headers, values)
 
-    def experiment_abbreviation(self):
-        return config.NEXT_BUTTON_TRAINING
+    def _cell_touched(self, x, y):
+        w = self.root.winfo_width()
+        h = self.root.winfo_height()
+        if x <= w / 3:
+            horiz = 'L'
+        elif x <= 2 * w / 3:
+            horiz = 'M'
+        else:
+            horiz = 'R'
+
+        if y <= h / 3:
+            vert = 'T'
+        elif y <= 2 * h / 3:
+            vert = 'M'
+        else:
+            vert = 'B'
+        return horiz + vert
+
+    def _screen_touched(self):
+        if self.pause_screen_displayed:
+            return "PS"  # Pause/Pink screen
+        elif self.next_displayed:
+            return "NBS"  # Next button screen
+        elif self.blackout_displayed:
+            return "BS"  # Blackout screen
+        elif (hasattr(self, "options_displayed") and self.options_displayed) or \
+             (hasattr(self, "left_option_displayed") and self.left_option_displayed) or  \
+             (hasattr(self, "right_option_displayed") and self.right_option_displayed):
+            return "RS"  # Response screen
+        elif self.snack_time:
+            return "ST"  # Snack time
+        else:
+            col = self.left_canvas["background"]
+            if col == COLOR_A:
+                return "STIMULUS_A"
+            elif col == COLOR_B:
+                return "STIMULUS_B"
+            else:
+                return "INTER_STIMULUS"
 
 
-class GoButtonTraining(Experiment):
+class Pretraining(Experiment):
     def __init__(self):
         super().__init__()
+        self.success_frequency = None
+        self.left_option_displayed = False
+        self.right_option_displayed = False
+        self.stimulus_list = [COLOR_A] * 20 + [COLOR_B] * 20
 
-    def get_ready_to_start_trial(self):
-        if self.trial_cnt >= config.TRIALS_BEFORE_PAUSE:
+    def start_trial(self, event=None):
+        self.clear()
+        is_done = self.display_next_stimulus()
+        if is_done:
             self.display_pause_screen()
-            self.trial_cnt = 0
+            self.cancel_all_after_jobs()
         else:
-            self.clear()
-            self.show_only_go()
+            self.display_option()
 
-    def show_only_go(self):
-        super().show_only_go()
+    def display_next_stimulus(self):
+        if len(self.stimulus_list) == 0:
+            return True
+        self.stimulus = self.stimulus_list.pop()
+        self._set_entire_screen_color(self.stimulus)
+        self.is_A = (self.stimulus == COLOR_A)
+        return False
+
+    def display_option(self):
+        # self.clear()
+        if self.is_A:
+            self._display_symbol(config.LEFT_OPTION, self.bottom_left_canvas)
+            self.left_option_displayed = True
+            self.right_option_displayed = False
+        else:
+            self._display_symbol(config.RIGHT_OPTION, self.top_right_canvas)
+            self.right_option_displayed = True
+            self.left_option_displayed = False
         self.tic = time.time()
 
-    def start_trial(self, event=None):
-        pass
+    def _display_symbol(self, symbol, canvas):
+        w = canvas.winfo_width()
+        h = canvas.winfo_height()
+        canvas.create_image(w / 2, h / 2, image=self.image_files[symbol], anchor=tk.CENTER)
 
-    def go_clicked(self, event=None):
-        if self.go_displayed:
-            self.trial_cnt += 1
-            self.write_to_file()
-            self.clear()
-            play_correct()
-            job = self.root.after(config.DELAY_AFTER_REWARD, self.show_only_go)
-            self.current_after_jobs = [job]
+    def _left_clicked(self, event=None):
+        if self.left_option_displayed:
+            self._option_chosen()
+            return "break"
 
-    def write_to_file(self):
-        headers = ["subject",
-                   "experiment",
-                   "date",
-                   "timestamp",
-                   "trial",
-                   "response_time",
-                   "BACKGROUND_COLOR",
-                   "SEPARATOR_COLOR",
-                   "GO_BUTTON_COLOR",
-                   "GO_BUTTON_WIDTH",
-                   "SOUND_CORRECT"]
+    def _right_clicked(self, event=None):
+        if self.right_option_displayed:
+            self._option_chosen(event)
+            return "break"
 
-        toc = time.time()
-        response_time = round(toc - self.tic, TIMETOL)
-        values = [config.SUBJECT_TAG,
-                  self.experiment_abbreviation(),
-                  datestamp(),
-                  timestamp(),
-                  self.trial_cnt,
-                  response_time,
-                  BACKGROUND_COLOR,
-                  SEPARATOR_COLOR,
-                  GO_BUTTON_COLOR,
-                  config.GO_BUTTON_WIDTH,
-                  config.SOUND_CORRECT]
-
-        self.result_file.write(headers, values)
-
-    def experiment_abbreviation(self):
-        return config.GO_BUTTON_TRAINING
-
-
-class DelayedMatchingToSample(Experiment):
-    def __init__(self):
-        super().__init__()
-        self.use_zero_delay = True
-
-        # The last delay time used
-        self.delay_time = None
-
-        # The last sample displayed
-        self.sample = None
-
-        # The last displayed left option
-        self.left_symbol = None
-
-        # The last displayed right option
-        self.right_symbol = None
-
-        # Only used in MatchingToSample
-        self.is_practice_trial = None
-
+    def _option_chosen(self, event):
+        self.correct_choice()
+        self.write_to_file(event=event)
         self.left_option_displayed = False
         self.right_option_displayed = False
 
-        # Overridden from Experiment, since here we want one success_list per delay time
-        self.success_frequency = dict()
-        self.success_list = dict()
-        for dt in set(config.DELAY_TIMES).union({0}):
-            self.success_frequency[dt] = 0
-            self.success_list[dt] = []
-
-    def start_trial(self, event=None):
-        if self.use_zero_delay:
-            self.delay_time = 0
-        else:
-            self.delay_time = random.choice(config.DELAY_TIMES)
-        self.use_zero_delay = not self.use_zero_delay
-        self.clear()
-        job1 = self.display_random_symbol(config.SYMBOL_SHOW_TIME)
-        self.current_after_jobs = [job1]
-        job2 = self.root.after(config.SYMBOL_SHOW_TIME + self.delay_time, self.display_options,
-                               self.sample)
-        self.current_after_jobs.append(job2)
-
-    def display_random_symbol(self, display_time):
-        self.sample = random.choice(config.SYMBOLS_MTS)
-        self.top_canvas.delete(tk.ALL)
-        self.display_symbol(self.sample, self.top_canvas)
-        job = self.root.after(display_time, self.clear)
-        return job
-
-    def display_options(self, correct_symbol, do_clear=True, show_only_correct=False):
-        incorrect_symbol = None
-        if not show_only_correct:
-            found = False
-            while not found:
-                incorrect_symbol = random.choice(config.SYMBOLS_MTS)
-                found = (incorrect_symbol != correct_symbol)
-        if do_clear:
-            self.clear()
-
-        r = random.random()
-        if r < 0.5:
-            self.left_is_correct = True
-            self.display_symbol(correct_symbol, self.middle_lcanvas)
-            self.left_option_displayed = True
-            self.left_symbol = correct_symbol
-            self.right_symbol = incorrect_symbol
-            if not show_only_correct:
-                self.display_symbol(incorrect_symbol, self.middle_rcanvas)
-                self.right_option_displayed = True
-        else:
-            self.left_is_correct = False
-            self.display_symbol(correct_symbol, self.middle_rcanvas)
-            self.right_option_displayed = True
-            self.right_symbol = correct_symbol
-            self.left_symbol = incorrect_symbol
-            if not show_only_correct:
-                self.display_symbol(incorrect_symbol, self.middle_lcanvas)
-                self.left_option_displayed = True
-        self.tic = time.time()
-
-    def middle_limage_clicked(self, event=None):
-        if self.left_option_displayed:
-            is_correct = self.left_is_correct
-            if self.left_is_correct:
-                self.correct_choice()
-            else:
-                self.incorrect_choice()
-            self.left_option_displayed = False
-            self.right_option_displayed = False
-            self.write_to_file(self.left_symbol, is_correct)
-
-    def middle_rimage_clicked(self, event=None):
-        if self.right_option_displayed:
-            is_correct = not self.left_is_correct
-            if self.left_is_correct:
-                self.incorrect_choice()
-            else:
-                self.correct_choice()
-            self.left_option_displayed = False
-            self.right_option_displayed = False
-            self.write_to_file(self.right_symbol, is_correct)
-
-    def write_to_file(self, symbol_clicked, is_correct):
-        if self.is_practice_trial:
-            return
-        self.update_success_frequency(is_correct)
-        headers = ["freq_correct",
-                   "subject",
-                   "experiment",
-                   "date",
-                   "timestamp",
-                   "trial",
-                   "delay",
-                   "sample",
-                   "left_item",
-                   "right_item",
-                   "response",
-                   "is_correct",
-                   "response_time",
-                   "BACKGROUND_COLOR",
-                   "SEPARATOR_COLOR",
-                   "NEXT_BUTTON_COLOR",
-                   "BLACKOUT_COLOR",
-                   "SYMBOL_WIDTH",
-                   "NEXT_BUTTON_WIDTH",
-                   "BLACKOUT_TIME",
-                   "DELAY_AFTER_REWARD",
-                   "SOUND_CORRECT",
-                   "SOUND_INCORRECT",
-                   "DELAY_TIMES",
-                   "SYMBOL_SHOW_TIME",
-                   "SYMBOL_SHOW_TIME_MTS"]
-
-        toc = time.time()
-        response_time = round(toc - self.tic, TIMETOL)
-        ls = self.left_symbol if self.left_symbol is not None else "None"
-        rs = self.right_symbol if self.right_symbol is not None else "None"
-        values = [self.success_frequency[self.delay_time],
-                  config.SUBJECT_TAG,
-                  self.experiment_abbreviation(),
-                  datestamp(),
-                  timestamp(),
-                  self.trial_cnt,
-                  self.delay_time,
-                  self.sample,
-                  ls,
-                  rs,
-                  symbol_clicked,
-                  is_correct,
-                  response_time,
-                  BACKGROUND_COLOR,
-                  SEPARATOR_COLOR,
-                  NEXT_BUTTON_COLOR,
-                  BLACKOUT_COLOR,
-                  config.SYMBOL_WIDTH,
-                  config.NEXT_BUTTON_WIDTH,
-                  config.BLACKOUT_TIME,
-                  config.DELAY_AFTER_REWARD,
-                  config.SOUND_CORRECT,
-                  config.SOUND_INCORRECT,
-                  config.DELAY_TIMES,
-                  config.SYMBOL_SHOW_TIME,
-                  config.SYMBOL_SHOW_TIME_MTS]
-
-        self.result_file.write(headers, values)
-
-    def update_success_frequency(self, is_correct):
-        sl = self.success_list[self.delay_time]
-        if is_correct:
-            sl.append(1)
-        else:
-            sl.append(0)
-        if len(self.success_list) > 20:
-            sl.pop(0)
-        self.success_frequency[self.delay_time] = round(sum(sl) / len(sl), 3)
-
-    def go_clicked(self, event=None):
-        pass  # Not used in DMS
+    def get_file_data(self):
+        return list()  # No additional file content from the base class
 
     def experiment_abbreviation(self):
-        return config.DELAYED_MATCHING_TO_SAMPLE
+        return config.PRETRAINING
 
 
-class ZeroDelayMatchingToSample(DelayedMatchingToSample):
+class SimultaneousPresentation(Experiment):
     def __init__(self):
         super().__init__()
-        self.delay_time = 0
-        self.success_frequency = {self.delay_time: 0}
-        self.success_list = {self.delay_time: []}
-
-    def start_trial(self, event=None):
-        self.clear()
-        job1 = self.display_random_symbol(config.SYMBOL_SHOW_TIME)
-        self.current_after_jobs = [job1]
-        job2 = self.root.after(config.SYMBOL_SHOW_TIME, self.display_options, self.sample)
-        self.current_after_jobs.append(job2)
-
-    def experiment_abbreviation(self):
-        return config.ZERO_DELAY_MATCHING_TO_SAMPLE
-
-
-class MatchingToSample(DelayedMatchingToSample):
-    def __init__(self):
-        super().__init__()
-        self.delay_time = "na"
-        self.is_practice_trial = False  # If True, show only the correct option
-
-        self.success_frequency = {self.delay_time: 0}
-        self.success_list = {self.delay_time: []}
-
-    def start_trial(self, event=None):
-        self.is_practice_trial = self.trial_cnt % 3 == 0
-        self.clear()
-        self.display_random_symbol()
-        job = self.root.after(config.SYMBOL_SHOW_TIME_MTS, self.display_options,
-                              self.sample, False, self.is_practice_trial)
-        self.current_after_jobs = [job]
-
-    def display_random_symbol(self):
-        self.sample = random.choice(config.SYMBOLS_MTS)
-        self.display_symbol(self.sample, self.top_canvas)
-
-    def experiment_abbreviation(self):
-        return config.MATCHING_TO_SAMPLE
-
-
-class Discrimination(Experiment):
-    def __init__(self):
-        super().__init__()
-        self.left_option_displayed = False
-        self.right_option_displayed = False
-        self.is_practice_trial = None
-        # self.go_waiting = None
-
-    # def show_only_go(self):
-    #     super().show_only_go()
-    #     self.tic = time.time()
-
-    # def display_go(self):
-    #     super().display_go()
-    #     self.tic = time.time()
-
-    # def show_only_next(self):
-    #     super().show_only_next()
-    #     is_correct = not self.is_rewarding
-    #     self.write_to_file("nogo", is_correct)
-    #     if is_correct:
-    #         self.clear()
-    #         play_correct()
-    #         job = self.root.after(config.DELAY_AFTER_REWARD, self.get_ready_to_start_trial)
-    #     else:
-    #         self.blackout()
-    #         play_incorrect()
-    #         job = self.root.after(config.BLACKOUT_TIME, self.get_ready_to_start_trial)
-    #     self.current_after_jobs = [job]
-
-    def display_options(self):
-        L = 0.99 * self.L
-        S = sqrt(3) / 2
-
-        if (self.is_practice_trial and not self.is_rewarding) or (not self.is_practice_trial):
-            # Circle
-            self.middle_lcanvas.create_oval(0, 0, L, L, fill=DISCRIMINATION_LEFT_COLOR, outline="",
-                                            tags="shape")
-            self.left_option_displayed = True
-        if (self.is_practice_trial and self.is_rewarding) or (not self.is_practice_trial):
-            # Triangle
-            self.middle_rcanvas.create_polygon(0, L * (S + 1) / 2,
-                                               L, L * (S + 1) / 2,
-                                               L / 2, L * (1 - S) / 2,
-                                               fill=DISCRIMINATION_RIGHT_COLOR,
-                                               outline="", tags="shape")
-            self.right_option_displayed = True
-
-        # Star
-        # s = L * sin(pi / 5)
-        # self.middle_rcanvas.create_polygon((L - s) / 2, L,  # 1
-        #                                    L / 2, 0,  # 4
-        #                                    (L + s) / 2, L,  # 2
-        #                                    0, L - s * sin(2 * pi / 5),  # 5
-        #                                    L, L - s * sin(2 * pi / 5),  # 3
-        #                                    fill=DISCRIMINATION_RIGHT_COLOR,
-        #                                    outline="", tags="shape")
-        self.tic = time.time()
-
-    def middle_limage_clicked(self, event=None):
-        if self.left_option_displayed:
-            is_correct = not self.is_rewarding
-            if is_correct:
-                self.correct_choice()
-            else:
-                self.incorrect_choice()
-            self.left_option_displayed = False
-            self.right_option_displayed = False
-            self.write_to_file("left", is_correct)
-
-    def middle_rimage_clicked(self, event=None):
-        if self.right_option_displayed:
-            is_correct = self.is_rewarding
-            if is_correct:
-                self.correct_choice()
-            else:
-                self.incorrect_choice()
-            self.left_option_displayed = False
-            self.right_option_displayed = False
-            self.write_to_file("right", is_correct)
-
-    # def go_clicked(self, event=None):
-    #     if self.go_waiting is not None:  # Cancel the pending job to remove the go button
-    #         self.root.after_cancel(self.go_waiting)
-    #         self.go_waiting = None
-    #     if self.go_displayed:
-    #         self.write_to_file("go", self.is_rewarding)
-    #         if self.is_rewarding:
-    #             self.clear()
-    #             play_correct()
-    #             job = self.root.after(config.DELAY_AFTER_REWARD, self.get_ready_to_start_trial)
-    #         else:
-    #             self.blackout()
-    #             play_incorrect()
-    #             job = self.root.after(config.BLACKOUT_TIME, self.get_ready_to_start_trial)
-    #         self.current_after_jobs = [job]
-
-
-class SequenceDiscrimination(Discrimination):
-    def __init__(self):
-        super().__init__()
-        all_sequences = [(config.SYMBOL1, config.SYMBOL1),
-                         (config.SYMBOL1, config.SYMBOL2),
-                         (config.SYMBOL2, config.SYMBOL1),
-                         (config.SYMBOL2, config.SYMBOL2)]
-        self.nonrewarding_sequences = [s for s in all_sequences if s != config.REWARDING_SEQUENCE]
-        self.pot18 = []
-        for s in all_sequences:
-            if s == config.REWARDING_SEQUENCE:
-                self.pot18.extend([s] * 9)
-            else:
-                self.pot18.extend([s] * 3)
-
+        self.options_displayed = False
+        self.is_correct = None
+        self.POT10 = [COLOR_A, COLOR_B] * 5
         self._create_new_sequences()
 
-    def start_trial(self, event=None):
-        self.clear()
-        job1, job2, job3 = self.display_random_sequence()
-        self.current_after_jobs = [job1, job2, job3]
-        time_to_options = 2 * config.STIMULUS_TIME + config.INTER_STIMULUS_TIME + config.RETENTION_TIME
-        job4 = self.root.after(time_to_options, self.display_options)
-        self.current_after_jobs.append(job4)
-
     def _create_new_sequences(self):
-        random.shuffle(self.pot18)
-        self.sequences = list(self.pot18)
-
-    def display_random_sequence(self):
-        self.stimulus1, self.stimulus2 = self.sequences.pop()
-        if len(self.sequences) == 0:
-            self._create_new_sequences()
-
-        self.top_canvas.delete(tk.ALL)
-        self.display_symbol_top(self.stimulus1)
-        job1 = self.root.after(config.STIMULUS_TIME, self.clear)
-        job2 = self.root.after(config.STIMULUS_TIME + config.INTER_STIMULUS_TIME,
-                               self.display_symbol_top, self.stimulus2)
-        job3 = self.root.after(2 * config.STIMULUS_TIME + config.INTER_STIMULUS_TIME, self.clear)
-        self.current_after_jobs = [job1, job2, job3]
-        self.is_rewarding = ((self.stimulus1, self.stimulus2) == config.REWARDING_SEQUENCE)
-        return job1, job2, job3
-
-    def write_to_file(self, left_or_right, is_correct):
-        self.update_success_frequency(is_correct)
-        headers = ["freq_correct",
-                   "subject",
-                   "experiment",
-                   "date",
-                   "timestamp",
-                   "trial",
-                   "stimulus1",
-                   "stimulus2",
-                   "response",
-                   "is_correct",
-                   "response_time",
-                   "BACKGROUND_COLOR",
-                   "SEPARATOR_COLOR",
-                   "NEXT_BUTTON_COLOR",
-                   "BLACKOUT_COLOR",
-                   "SYMBOL_WIDTH",
-                   "NEXT_BUTTON_WIDTH",
-                   "BLACKOUT_TIME",
-                   "DELAY_AFTER_REWARD",
-                   "SOUND_CORRECT",
-                   "SOUND_INCORRECT",
-                   "STIMULUS_TIME",
-                   "GO_BUTTON_DURATION",
-                   "RETENTION_TIME",
-                   "GO_BUTTON_WIDTH",
-                   "GO_BUTTON_COLOR",
-                   "REWARDING_SEQUENCE",
-                   "INTER_STIMULUS_TIME"]
-
-        toc = time.time()
-        response_time = round(toc - self.tic, TIMETOL)
-        values = [self.success_frequency,
-                  config.SUBJECT_TAG,
-                  self.experiment_abbreviation(),
-                  datestamp(),
-                  timestamp(),
-                  self.trial_cnt,
-                  self.stimulus1,
-                  self.stimulus2,
-                  left_or_right,
-                  is_correct,
-                  response_time,
-                  BACKGROUND_COLOR,
-                  SEPARATOR_COLOR,
-                  NEXT_BUTTON_COLOR,
-                  BLACKOUT_COLOR,
-                  config.SYMBOL_WIDTH,
-                  config.NEXT_BUTTON_WIDTH,
-                  config.BLACKOUT_TIME,
-                  config.DELAY_AFTER_REWARD,
-                  config.SOUND_CORRECT,
-                  config.SOUND_INCORRECT,
-                  config.STIMULUS_TIME,
-                  config.GO_BUTTON_DURATION,
-                  config.RETENTION_TIME,
-                  config.GO_BUTTON_WIDTH,
-                  GO_BUTTON_COLOR,
-                  config.REWARDING_SEQUENCE[0] + "_" + config.REWARDING_SEQUENCE[1],
-                  config.INTER_STIMULUS_TIME]
-
-        self.result_file.write(headers, values)
-
-    def experiment_abbreviation(self):
-        return config.SEQUENCE_DISCRIMINATION
-
-
-class SingleStimulusDiscrimination(Discrimination):
-    def __init__(self, use_practice_trials=False):
-        self.use_practice_trials = use_practice_trials
-        super().__init__()
+        self.stimuli_pot = list(self.POT10)  # Make a copy
+        random.shuffle(self.stimuli_pot)
 
     def start_trial(self, event=None):
-        if self.use_practice_trials:
-            self.is_practice_trial = (self.trial_cnt % config.PRACTICE_ROUND_INTERVAL == 0)
-        else:
-            self.is_practice_trial = False
-
         self.clear()
         self.display_random_stimulus()
-        time_to_options = config.STIMULUS_TIME + config.RETENTION_TIME
-        job = self.root.after(time_to_options, self.display_options)
+        job = self.root.after(config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS, self.display_options)
         self.current_after_jobs = [job]
 
     def display_random_stimulus(self):
-        self.stimulus = random.choice(config.SYMBOLS_SS)
-        self.top_canvas.delete(tk.ALL)
-        self.display_symbol_top(self.stimulus)
-        self.is_rewarding = (self.stimulus == config.REWARDING_STIMULUS)
+        self.stimulus = self.stimuli_pot.pop()
+        if len(self.stimuli_pot) == 0:
+            self._create_new_sequences()
+        self._set_entire_screen_color(self.stimulus)
+        self.is_A = (self.stimulus == COLOR_A)
 
-    def write_to_file(self, go_or_nogo, is_correct):
-        if self.is_practice_trial:
-            return
-        self.update_success_frequency(is_correct)
-        headers = ["freq_correct",
-                   "subject",
-                   "experiment",
-                   "date",
-                   "timestamp",
-                   "trial",
-                   "stimulus",
-                   "response",
-                   "is_correct",
-                   "response_time",
-                   "BACKGROUND_COLOR",
-                   "SEPARATOR_COLOR",
-                   "NEXT_BUTTON_COLOR",
-                   "BLACKOUT_COLOR",
-                   "SYMBOL_WIDTH",
-                   "NEXT_BUTTON_WIDTH",
-                   "BLACKOUT_TIME",
-                   "DELAY_AFTER_REWARD",
-                   "SOUND_CORRECT",
-                   "SOUND_INCORRECT",
-                   "STIMULUS_TIME",
-                   "GO_BUTTON_DURATION",
-                   "RETENTION_TIME",
-                   "GO_BUTTON_WIDTH",
-                   "GO_BUTTON_COLOR",
-                   "REWARDING_STIMULUS"]
+    def display_options(self):
+        # self.clear()
+        self._display_symbol(config.LEFT_OPTION, self.bottom_left_canvas)
+        self._display_symbol(config.RIGHT_OPTION, self.top_right_canvas)
+        self.options_displayed = True
+        self.tic = time.time()
 
-        toc = time.time()
-        response_time = round(toc - self.tic, TIMETOL)
-        values = [self.success_frequency,
-                  config.SUBJECT_TAG,
-                  self.experiment_abbreviation(),
-                  datestamp(),
-                  timestamp(),
-                  self.trial_cnt,
-                  self.stimulus,
-                  go_or_nogo,
-                  is_correct,
-                  response_time,
-                  BACKGROUND_COLOR,
-                  SEPARATOR_COLOR,
-                  NEXT_BUTTON_COLOR,
-                  BLACKOUT_COLOR,
-                  config.SYMBOL_WIDTH,
-                  config.NEXT_BUTTON_WIDTH,
-                  config.BLACKOUT_TIME,
-                  config.DELAY_AFTER_REWARD,
-                  config.SOUND_CORRECT,
-                  config.SOUND_INCORRECT,
-                  config.STIMULUS_TIME,
-                  config.GO_BUTTON_DURATION,
-                  config.RETENTION_TIME,
-                  config.GO_BUTTON_WIDTH,
-                  GO_BUTTON_COLOR,
-                  config.REWARDING_STIMULUS]
+    def _display_symbol(self, symbol, canvas):
+        w = canvas.winfo_width()
+        h = canvas.winfo_height()
+        canvas.create_image(w / 2, h / 2, image=self.image_files[symbol], anchor=tk.CENTER)
 
-        self.result_file.write(headers, values)
+    def _left_clicked(self, event=None):
+        if self.options_displayed:
+            self.is_correct = self.is_A
+            self._option_chosen(event)
+            return "break"
+
+    def _right_clicked(self, event=None):
+        if self.options_displayed:
+            self.is_correct = not self.is_A
+            self._option_chosen(event)
+            return "break"
+
+    def _option_chosen(self, event):
+        if self.is_correct:
+            self.correct_choice()
+        else:
+            self.incorrect_choice()
+        self.write_to_file(event=event)
+        self.options_displayed = False
+
+    def get_file_data(self):
+        return [("STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS", config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS)]
 
     def experiment_abbreviation(self):
-        if self.use_practice_trials:
-            return config.SINGLE_STIMULUS_DISCRIMINATION_WITH_PRACTICE
+        return config.SIMULTANEOUS_PRESENTATION
+
+
+class SimultaneousPresentationOverlap(Experiment):
+    def __init__(self, overlap_time):
+        super().__init__()
+        self.overlap_time = overlap_time
+        self.options_displayed = False
+        self.is_correct = None
+        self.POT10 = [COLOR_A, COLOR_B] * 5
+        self._create_new_stimuli()
+
+    def _create_new_stimuli(self):
+        self.stimuli_pot = list(self.POT10)  # Make a copy
+        random.shuffle(self.stimuli_pot)
+
+    def start_trial(self, event=None):
+        self.clear()
+        self.display_random_stimulus()
+        job1 = self.root.after(config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS, self.display_options)
+        job2 = self.root.after(config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS + self.overlap_time,
+                               self.remove_stimulus)
+        self.current_after_jobs = [job1, job2]
+
+    def remove_stimulus(self):
+        self.set_background_color(BACKGROUND_COLOR)
+
+    def display_random_stimulus(self):
+        self.stimulus = self.stimuli_pot.pop()
+        if len(self.stimuli_pot) == 0:
+            self._create_new_stimuli()
+        self._set_entire_screen_color(self.stimulus)
+        self.is_A = (self.stimulus == COLOR_A)
+
+    def display_options(self):
+        # self.clear()
+        self._display_symbol(config.LEFT_OPTION, self.bottom_left_canvas)
+        self._display_symbol(config.RIGHT_OPTION, self.top_right_canvas)
+        self.options_displayed = True
+        self.tic = time.time()
+
+    def _display_symbol(self, symbol, canvas):
+        w = canvas.winfo_width()
+        h = canvas.winfo_height()
+        canvas.create_image(w / 2, h / 2, image=self.image_files[symbol], anchor=tk.CENTER)
+
+    def _left_clicked(self, event=None):
+        if self.options_displayed:
+            self.is_correct = self.is_A
+            self._option_chosen(event)
+            return "break"
+
+    def _right_clicked(self, event=None):
+        if self.options_displayed:
+            self.is_correct = not self.is_A
+            self._option_chosen(event)
+            return "break"
+
+    def _option_chosen(self, event):
+        if self.is_correct:
+            self.correct_choice()
         else:
-            return config.SINGLE_STIMULUS_DISCRIMINATION
+            self.incorrect_choice()
+        self.write_to_file(event=event)
+        self.options_displayed = False
+
+    def get_file_data(self):
+        return [("overlap_time", self.overlap_time),
+                ("STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS", config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS)]
+
+    def experiment_abbreviation(self):
+        return config.SIMULTANEOUS_PRESENTATION_OVERLAP
+
+
+class SequenceDiscriminationProbe(Experiment):
+    def __init__(self):
+        super().__init__()
+        self.options_displayed = False
+        self.is_correct = True  # Initialize to True so that first sequence is taken from pot
+        self.stimulus_cnt = 0
+
+        self.A = "A"
+        self.B = "B"
+        self.shortAB = "shortAB"
+        self.longAB = "longAB"
+
+        self.POT8 = [self.A, self.B] * 4
+        self.PROBE_POT10 = [self.shortAB, self.longAB] * 5
+        self._create_new_stimuli()
+        self._create_new_probes()
+
+    def _create_new_stimuli(self):
+        self.stimuli_pot = list(self.POT8)  # Make a copy
+        random.shuffle(self.stimuli_pot)
+
+    def _create_new_probes(self):
+        self.probe_pot = list(self.PROBE_POT10)  # Make a copy
+        random.shuffle(self.probe_pot)
+
+    def start_trial(self, event=None):
+        self.clear()
+        time_to_options = self.display_random_stimulus()
+        job = self.root.after(time_to_options, self.display_options)
+        self.current_after_jobs.append(job)
+
+    def display_random_stimulus(self):
+        self.stimulus_cnt += 1
+        is_probe_trial = (self.stimulus_cnt % config.PROBE_TRIAL_INTERVAL == 0)
+        if is_probe_trial:
+            self.stimulus = self.probe_pot.pop()
+            if len(self.probe_pot) == 0:
+                self._create_new_probes()
+        else:
+            self.stimulus = self.stimuli_pot.pop()
+            if len(self.stimuli_pot) == 0:
+                self._create_new_stimuli()
+
+        self.is_seq = False
+        if self.stimulus in (self.A, self.B):
+            if self.stimulus == self.A:
+                col = COLOR_A
+            else:
+                col = COLOR_B
+            self._set_entire_screen_color(col)
+            job = self.root.after(config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS, self.clear)
+            self.current_after_jobs = [job]
+            time_to_options = config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS
+        else:
+            self.is_seq = True
+            if self.stimulus == self.shortAB:
+                A_time = config.SHORT_A_TIME
+            else:
+                A_time = config.LONG_A_TIME
+            self._set_entire_screen_color(COLOR_A)
+            job1 = self.root.after(A_time, self.clear)
+            job2 = self.root.after(A_time + config.INTER_STIMULUS_TIME,
+                                   self._set_entire_screen_color, COLOR_B)
+            job3 = self.root.after(A_time + config.B_TIME, self.clear)
+            self.current_after_jobs = [job1, job2, job3]
+            time_to_options = A_time + config.B_TIME
+
+        self.is_A = (self.stimulus == self.A)
+        return time_to_options
+
+    def display_options(self):
+        self.clear()
+        self._display_symbol(config.LEFT_OPTION, self.bottom_left_canvas)
+        self._display_symbol(config.RIGHT_OPTION, self.top_right_canvas)
+        self.options_displayed = True
+        self.tic = time.time()
+
+    def _display_symbol(self, symbol, canvas):
+        w = canvas.winfo_width()
+        h = canvas.winfo_height()
+        canvas.create_image(w / 2, h / 2, image=self.image_files[symbol], anchor=tk.CENTER)
+
+    def _left_clicked(self, event=None):
+        if self.options_displayed:
+            if self.is_seq:
+                self._option_chosen_after_seq(event)
+            else:
+                self.is_correct = self.is_A
+                self._option_chosen(event)
+            return "break"
+
+    def _right_clicked(self, event=None):
+        if self.options_displayed:
+            if self.is_seq:
+                self._option_chosen_after_seq(event)
+            else:
+                self.is_correct = not self.is_A
+                self._option_chosen(event)
+            return "break"
+
+    def _option_chosen_after_seq(self, event):
+        self.is_correct = None
+        self.write_to_file(event=event)
+        self.options_displayed = False
+        self.clear()
+        self.get_ready_to_start_trial()
+
+    def _option_chosen(self, event):
+        if self.is_correct:
+            self.correct_choice()
+        else:
+            self.incorrect_choice()
+        self.write_to_file(event=event)
+        self.options_displayed = False
+
+    def get_file_data(self):
+        return [("STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS", config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS),
+                ("LONG_A_TIME", config.LONG_A_TIME),
+                ("SHORT_A_TIME", config.SHORT_A_TIME),
+                ("B_TIME", config.B_TIME)]
+
+    def experiment_abbreviation(self):
+        return config.SEQUENCE_DISCRIMINATION_PROBE
+
+
+class ResultFile():
+    def __init__(self, filename):
+        self.filename = filename
+        self.path_and_file = "./result_files/" + self.filename
+
+        if not os.path.exists('./result_files'):
+            os.makedirs('./result_files')
+
+    def write(self, headers, values):
+        if os.path.exists(self.path_and_file):
+            write_headers = (os.path.getsize(self.path_and_file) == 0)
+        else:
+            write_headers = True
+
+        file = open(self.path_and_file, 'a', newline='')
+        with file as csvfile:
+            w = csv.writer(csvfile, quotechar='"', quoting=csv.QUOTE_MINIMAL, escapechar=None)
+            if write_headers:
+                w.writerow(headers)
+            w.writerow(values)
 
 
 def play_correct():
@@ -1068,46 +884,16 @@ def timestamp():
     return hour + ":" + minute + ":" + second + ":" + millisecond
 
 
-class ResultFile():
-    def __init__(self, filename):
-        self.filename = filename
-        self.path_and_file = "./result_files/" + self.filename
-
-        if not os.path.exists('./result_files'):
-            os.makedirs('./result_files')
-
-    def write(self, headers, values):
-        if os.path.exists(self.path_and_file):
-            write_headers = (os.path.getsize(self.path_and_file) == 0)
-        else:
-            write_headers = True
-
-        file = open(self.path_and_file, 'a', newline='')
-        with file as csvfile:
-            w = csv.writer(csvfile, quotechar='"', quoting=csv.QUOTE_MINIMAL, escapechar=None)
-            if write_headers:
-                w.writerow(headers)
-            w.writerow(values)
-
-
 if __name__ == '__main__':
     e = None
-    if config.EXPERIMENT == config.NEXT_BUTTON_TRAINING:
-        e = NextButtonTraining()
-    elif config.EXPERIMENT == config.GO_BUTTON_TRAINING:
-        e = GoButtonTraining()
-    elif config.EXPERIMENT == config.MATCHING_TO_SAMPLE:
-        e = MatchingToSample()
-    elif config.EXPERIMENT == config.ZERO_DELAY_MATCHING_TO_SAMPLE:
-        e = ZeroDelayMatchingToSample()
-    elif config.EXPERIMENT == config.DELAYED_MATCHING_TO_SAMPLE:
-        e = DelayedMatchingToSample()
-    elif config.EXPERIMENT == config.SEQUENCE_DISCRIMINATION:
-        e = SequenceDiscrimination()
-    elif config.EXPERIMENT == config.SINGLE_STIMULUS_DISCRIMINATION:
-        e = SingleStimulusDiscrimination(use_practice_trials=False)
-    elif config.EXPERIMENT == config.SINGLE_STIMULUS_DISCRIMINATION_WITH_PRACTICE:
-        e = SingleStimulusDiscrimination(use_practice_trials=True)
+    if config.EXPERIMENT == config.PRETRAINING:
+        e = Pretraining()
+    elif config.EXPERIMENT == config.SIMULTANEOUS_PRESENTATION:
+        e = SimultaneousPresentation()
+    elif config.EXPERIMENT == config.SIMULTANEOUS_PRESENTATION_OVERLAP:
+        e = SimultaneousPresentationOverlap(1000)
+    elif config.EXPERIMENT == config.SEQUENCE_DISCRIMINATION_PROBE:
+        e = SequenceDiscriminationProbe()
     else:
         print("Error: Undefined experiment name '" + config.EXPERIMENT + "'.")
     if e:

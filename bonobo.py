@@ -39,7 +39,7 @@ frame_options = dict()  # For debugging frame positioning
 canvas_options = {'bd': 0, 'highlightthickness': 0}
 # canvas_options = {'bd': 3, 'highlightthickness': 3}
 
-TOL = 0.49
+TOL = 0.99
 TIMETOL = 3  # Round delay times to nearest millisecond
 
 

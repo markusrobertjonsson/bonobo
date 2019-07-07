@@ -8,8 +8,8 @@ SEQUENCE_DISCRIMINATION_PROBE = "SequenceDiscriminationProbe"
 # The experiment to run. Remove the "#" before the one to run.
 # EXPERIMENT = PRETRAINING
 # EXPERIMENT = SIMULTANEOUS_PRESENTATION
-EXPERIMENT = SIMULTANEOUS_PRESENTATION_OVERLAP
-# EXPERIMENT = SEQUENCE_DISCRIMINATION_PROBE
+# EXPERIMENT = SIMULTANEOUS_PRESENTATION_OVERLAP
+EXPERIMENT = SEQUENCE_DISCRIMINATION_PROBE
 
 # The subject exposed to the experiment. Used in the name of the result file and
 # as the "subject" column in the result file

@@ -376,8 +376,14 @@ class Experiment():
         if hasattr(self, "stimulus") and self.stimulus is not None:
             if self.stimulus == COLOR_A:
                 stimulus_acronym = "A"
-            else:
+            elif self.stimulus == COLOR_B:
                 stimulus_acronym = "B"
+            elif self.stimulus == SequenceDiscriminationProbe.LONG_AB:
+                stimulus_acronym = "AB"
+            elif self.stimulus == SequenceDiscriminationProbe.SHORT_AB:
+                stimulus_acronym = "aB"
+            else:
+                assert(False)
         toc = time.time()
         response_time = None
         if hasattr(self, "tic") and self.tic is not None:
@@ -530,7 +536,7 @@ class Pretraining(Experiment):
 
     def _left_clicked(self, event=None):
         if self.left_option_displayed:
-            self._option_chosen()
+            self._option_chosen(event)
             return "break"
 
     def _right_clicked(self, event=None):
@@ -687,19 +693,16 @@ class SimultaneousPresentationOverlap(Experiment):
 
 
 class SequenceDiscriminationProbe(Experiment):
+    SHORT_AB = "shortAB"
+    LONG_AB = "longAB"
+
     def __init__(self):
         super().__init__()
         self.options_displayed = False
         self.is_correct = True  # Initialize to True so that first sequence is taken from pot
         self.stimulus_cnt = 0
-
-        self.A = "A"
-        self.B = "B"
-        self.shortAB = "shortAB"
-        self.longAB = "longAB"
-
-        self.POT8 = [self.A, self.B] * 4
-        self.PROBE_POT10 = [self.shortAB, self.longAB] * 5
+        self.POT8 = [COLOR_A, COLOR_B] * 4
+        self.PROBE_POT10 = [SequenceDiscriminationProbe.SHORT_AB, SequenceDiscriminationProbe.LONG_AB] * 5
         self._create_new_stimuli()
         self._create_new_probes()
 
@@ -730,18 +733,14 @@ class SequenceDiscriminationProbe(Experiment):
                 self._create_new_stimuli()
 
         self.is_seq = False
-        if self.stimulus in (self.A, self.B):
-            if self.stimulus == self.A:
-                col = COLOR_A
-            else:
-                col = COLOR_B
-            self._set_entire_screen_color(col)
+        if self.stimulus in (COLOR_A, COLOR_B):
+            self._set_entire_screen_color(self.stimulus)
             job = self.root.after(config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS, self.clear)
             self.current_after_jobs = [job]
             time_to_options = config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS
         else:
             self.is_seq = True
-            if self.stimulus == self.shortAB:
+            if self.stimulus == SequenceDiscriminationProbe.SHORT_AB:
                 A_time = config.SHORT_A_TIME
             else:
                 A_time = config.LONG_A_TIME
@@ -753,7 +752,7 @@ class SequenceDiscriminationProbe(Experiment):
             self.current_after_jobs = [job1, job2, job3]
             time_to_options = A_time + config.B_TIME
 
-        self.is_A = (self.stimulus == self.A)
+        self.is_A = (self.stimulus == COLOR_A)
         return time_to_options
 
     def display_options(self):

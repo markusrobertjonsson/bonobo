@@ -887,7 +887,6 @@ class CombinationAug2019():
             if sub_experiment_index < 2:
                 exp2.space_pressed()
                 exp2.finished_trial_cnt = exp1.finished_trial_cnt
-                print(f"setting exp2.finished_trial_cnt to {exp1.finished_trial_cnt}")
             exp2.root.mainloop()
 
         if sub_experiment_index <= 3:

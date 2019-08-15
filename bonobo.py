@@ -44,7 +44,9 @@ TIMETOL = 3  # Round delay times to nearest millisecond
 
 
 class Experiment():
-    def __init__(self):
+    def __init__(self, is_combination=False):
+        self.is_combination = is_combination
+        self.sub_experiment_index = None
         filename = self.result_filename()
         self.result_file = ResultFile(filename)
         self.started_trial_cnt = 0
@@ -72,6 +74,9 @@ class Experiment():
         self.pause_screen_displayed = False
         self.snack_time = False
         self.display_pause_screen()
+
+        if self.is_combination:
+            self.toggle_fullscreen()
 
     def _make_images(self):
         self.image_files = {'circle.gif': PhotoImage(file='circle.gif'),
@@ -195,6 +200,11 @@ class Experiment():
             self.root.config(cursor="none")
 
         self.root.title("vera")
+        if self.is_combination:
+            self.root.protocol("WM_DELETE_WINDOW", self.delete_window)
+
+    def delete_window(self):
+        exit(0)
 
     def toggle_fullscreen(self, event=None):
         self.is_fullscreen = not self.is_fullscreen  # Just toggling the boolean
@@ -293,6 +303,12 @@ class Experiment():
             self.cancel_all_after_jobs()
 
     def get_ready_to_start_trial(self):
+        if self.is_combination:
+            # print(self.success_frequency)
+            if self.is_sub_experiment_done():
+                self.root.destroy()
+                return
+
         self.blackout_displayed = False
         self.snack_time = False
         if self.finished_trial_cnt >= config.TRIALS_BEFORE_PAUSE:
@@ -311,6 +327,9 @@ class Experiment():
     def start_trial(self, event=None):
         pass
         # assert(False)  # Must be overloaded
+
+    def is_sub_experiment_done(self):
+        return False
 
     def left_clicked(self, event=None):
         self.last_clicked_button_canvas = "R1"
@@ -332,10 +351,13 @@ class Experiment():
         """
         Return the file name of the result file.
         """
-        experiment = self.experiment_abbreviation()
-        subject = config.SUBJECT_TAG.lower()
-        date = datestamp()
-        return subject + "_" + experiment + "_" + date + ".csv"
+        if self.is_combination:
+            return CombinationAug2019.result_filename()
+        else:
+            experiment = self.experiment_abbreviation()
+            subject = config.SUBJECT_TAG.lower()
+            date = datestamp()
+            return subject + "_" + experiment + "_" + date + ".csv"
 
     def update_success_frequency(self, is_correct):
         if is_correct is None:  # For example for probe trials
@@ -343,7 +365,8 @@ class Experiment():
         self.success_list.append(int(is_correct))
         if len(self.success_list) > 20:
             self.success_list.pop(0)
-        self.success_frequency = round(sum(self.success_list) / len(self.success_list), 3)
+        if len(self.success_list) >= 20:
+            self.success_frequency = round(sum(self.success_list) / len(self.success_list), 3)
 
     def experiment_abbreviation(self):
         assert(False)  # Must be overloaded
@@ -393,6 +416,11 @@ class Experiment():
         if self.success_frequency is not None:
             self.update_success_frequency(self.is_correct)
             file_data.extend([("freq_correct", self.success_frequency)])
+        else:
+            file_data.extend([("freq_correct", "None")])
+
+        if self.is_combination:
+            file_data.extend([("sub_experiment_index", self.sub_experiment_index)])
 
         file_data.extend([("subject", config.SUBJECT_TAG),
                           ("experiment", self.experiment_abbreviation()),
@@ -493,8 +521,8 @@ class Experiment():
 
 
 class Pretraining(Experiment):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, is_combination=False):
+        super().__init__(is_combination)
         self.success_frequency = None
         self.left_option_displayed = False
         self.right_option_displayed = False
@@ -550,16 +578,24 @@ class Pretraining(Experiment):
         self.left_option_displayed = False
         self.right_option_displayed = False
 
+    def is_sub_experiment_done(self):
+        return (len(self.stimulus_list) == 0)
+
     def get_file_data(self):
-        return list()  # No additional file content from the base class
+        if self.is_combination:
+            return [("STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS", config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS),
+                    ("overlap_time", "na"),
+                    ("STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS", config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS)]
+        else:
+            return list()  # No additional file content
 
     def experiment_abbreviation(self):
         return config.PRETRAINING
 
 
 class SimultaneousPresentation(Experiment):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, is_combination):
+        super().__init__(is_combination)
         self.options_displayed = False
         self.is_correct = None
         self.POT10 = [COLOR_A, COLOR_B] * 5
@@ -606,6 +642,9 @@ class SimultaneousPresentation(Experiment):
             self._option_chosen(event)
             return "break"
 
+    def is_sub_experiment_done(self):
+        return (self.success_frequency >= 0.8)
+
     def _option_chosen(self, event):
         if self.is_correct:
             self.correct_choice()
@@ -615,16 +654,24 @@ class SimultaneousPresentation(Experiment):
         self.options_displayed = False
 
     def get_file_data(self):
-        return [("STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS", config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS)]
+        if self.is_combination:
+            return [("STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS", config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS),
+                    ("overlap_time", "na"),
+                    ("STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS", config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS)]
+        else:
+            return [("STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS", config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS)]
 
     def experiment_abbreviation(self):
         return config.SIMULTANEOUS_PRESENTATION
 
 
 class SimultaneousPresentationOverlap(Experiment):
-    def __init__(self):
-        super().__init__()
-        self.overlap_time = config.OVERLAP_TIME
+    def __init__(self, is_combination=False, overlap_time=None):
+        super().__init__(is_combination)
+        if overlap_time is not None:
+            self.overlap_time = overlap_time
+        else:
+            self.overlap_time = config.OVERLAP_TIME
         self.options_displayed = False
         self.is_correct = None
         self.POT10 = [COLOR_A, COLOR_B] * 5
@@ -684,9 +731,17 @@ class SimultaneousPresentationOverlap(Experiment):
         self.write_to_file(event=event)
         self.options_displayed = False
 
+    def is_sub_experiment_done(self):
+        return (self.success_frequency >= 0.8)
+
     def get_file_data(self):
-        return [("overlap_time", self.overlap_time),
-                ("STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS", config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS)]
+        if self.is_combination:
+            return [("STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS", config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS),
+                    ("overlap_time", "na"),
+                    ("STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS", config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS)]
+        else:
+            return [("overlap_time", self.overlap_time),
+                    ("STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS", config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS)]
 
     def experiment_abbreviation(self):
         return config.SIMULTANEOUS_PRESENTATION_OVERLAP
@@ -810,6 +865,74 @@ class SequenceDiscriminationProbe(Experiment):
         return config.SEQUENCE_DISCRIMINATION_PROBE
 
 
+class CombinationAug2019():
+    def __init__(self):
+        filename = self.result_filename()
+        self.result_file = ResultFile(filename)
+
+        sub_experiment_index = self.result_file.get_last_value('sub_experiment_index')
+        if sub_experiment_index is None:
+            sub_experiment_index = 1
+        else:
+            sub_experiment_index = int(sub_experiment_index)
+
+        if sub_experiment_index == 1:
+            exp1 = Pretraining(is_combination=True)
+            exp1.sub_experiment_index = 1
+            exp1.root.mainloop()
+
+        if sub_experiment_index <= 2:
+            exp2 = SimultaneousPresentation(is_combination=True)
+            exp2.sub_experiment_index = 2
+            if sub_experiment_index < 2:
+                exp2.space_pressed()
+                exp2.finished_trial_cnt = exp1.finished_trial_cnt
+                print(f"setting exp2.finished_trial_cnt to {exp1.finished_trial_cnt}")
+            exp2.root.mainloop()
+
+        if sub_experiment_index <= 3:
+            exp3 = SimultaneousPresentationOverlap(is_combination=True, overlap_time=1000)
+            exp3.sub_experiment_index = 3
+            if sub_experiment_index < 3:
+                exp3.space_pressed()
+                exp3.finished_trial_cnt = exp2.finished_trial_cnt
+            exp3.root.mainloop()
+
+        if sub_experiment_index <= 4:
+            exp4 = SimultaneousPresentationOverlap(is_combination=True, overlap_time=500)
+            exp4.sub_experiment_index = 4
+            if sub_experiment_index < 4:
+                exp4.space_pressed()
+                exp4.finished_trial_cnt = exp3.finished_trial_cnt
+            exp4.root.mainloop()
+
+        if sub_experiment_index <= 5:
+            exp5 = SimultaneousPresentationOverlap(is_combination=True, overlap_time=250)
+            exp5.sub_experiment_index = 5
+            if sub_experiment_index < 5:
+                exp5.space_pressed()
+                exp5.finished_trial_cnt = exp4.finished_trial_cnt
+            exp5.root.mainloop()
+
+        if sub_experiment_index <= 6:
+            exp6 = SimultaneousPresentationOverlap(is_combination=True, overlap_time=0)
+            exp6.sub_experiment_index = 6
+            if sub_experiment_index < 6:
+                exp6.space_pressed()
+                exp6.finished_trial_cnt = exp5.finished_trial_cnt
+            exp6.root.mainloop()
+
+    @staticmethod
+    def result_filename():
+        experiment = CombinationAug2019.experiment_abbreviation()
+        subject = config.SUBJECT_TAG.lower()
+        return subject + "_" + experiment + ".csv"
+
+    @staticmethod
+    def experiment_abbreviation():
+        return "CombinationAug2019"
+
+
 class ResultFile():
     def __init__(self, filename):
         self.filename = filename
@@ -830,6 +953,42 @@ class ResultFile():
             if write_headers:
                 w.writerow(headers)
             w.writerow(values)
+
+    def get_last_value(self, column_title):
+        return ResultFile.get_last_value_static(self.path_and_file, column_title)
+
+    @staticmethod
+    def get_last_value_static(path_and_file, column_title):
+        if ResultFile.is_empty_or_does_not_exist(path_and_file):
+            return None
+        else:
+            file = open(path_and_file)
+            is_title = True
+            titles = None
+            data = None
+            with file as csvfile:
+                reader = csv.reader(csvfile)
+                for r in reader:
+                    if is_title:
+                        titles = r
+                        is_title = False
+                    else:
+                        data = r
+            if titles is not None:
+                try:
+                    title_ind = titles.index(column_title)
+                except ValueError:
+                    return None
+                return data[title_ind]
+            else:
+                return None
+
+    @staticmethod
+    def is_empty_or_does_not_exist(path_and_file):
+        if os.path.exists(path_and_file):
+            return (os.path.getsize(path_and_file) == 0)
+        else:
+            return True
 
 
 def play_correct():
@@ -884,16 +1043,19 @@ def timestamp():
 
 
 if __name__ == '__main__':
-    e = None
-    if config.EXPERIMENT == config.PRETRAINING:
-        e = Pretraining()
-    elif config.EXPERIMENT == config.SIMULTANEOUS_PRESENTATION:
-        e = SimultaneousPresentation()
-    elif config.EXPERIMENT == config.SIMULTANEOUS_PRESENTATION_OVERLAP:
-        e = SimultaneousPresentationOverlap()
-    elif config.EXPERIMENT == config.SEQUENCE_DISCRIMINATION_PROBE:
-        e = SequenceDiscriminationProbe()
+    if config.EXPERIMENT == config.COMBINATION1:
+        CombinationAug2019()
     else:
-        print("Error: Undefined experiment name '" + config.EXPERIMENT + "'.")
-    if e:
-        e.root.mainloop()
+        e = None
+        if config.EXPERIMENT == config.PRETRAINING:
+            e = Pretraining()
+        elif config.EXPERIMENT == config.SIMULTANEOUS_PRESENTATION:
+            e = SimultaneousPresentation()
+        elif config.EXPERIMENT == config.SIMULTANEOUS_PRESENTATION_OVERLAP:
+            e = SimultaneousPresentationOverlap()
+        elif config.EXPERIMENT == config.SEQUENCE_DISCRIMINATION_PROBE:
+            e = SequenceDiscriminationProbe()
+        else:
+            print("Error: Undefined experiment name '" + config.EXPERIMENT + "'.")
+        if e:
+            e.root.mainloop()

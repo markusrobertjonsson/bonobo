@@ -3,17 +3,18 @@ PRETRAINING = "Pretraining"
 SIMULTANEOUS_PRESENTATION = "SimulataneousPresentation"
 SIMULTANEOUS_PRESENTATION_OVERLAP = "SimulataneousPresentationOverlap"
 SEQUENCE_DISCRIMINATION_PROBE = "SequenceDiscriminationProbe"
-
+COMBINATION1 = "CombinationAug2019"
 
 # The experiment to run. Remove the "#" before the one to run.
 # EXPERIMENT = PRETRAINING
 # EXPERIMENT = SIMULTANEOUS_PRESENTATION
 # EXPERIMENT = SIMULTANEOUS_PRESENTATION_OVERLAP
-EXPERIMENT = SEQUENCE_DISCRIMINATION_PROBE
+# EXPERIMENT = SEQUENCE_DISCRIMINATION_PROBE
+EXPERIMENT = COMBINATION1
 
 # The subject exposed to the experiment. Used in the name of the result file and
 # as the "subject" column in the result file
-SUBJECT_TAG = "johan"
+SUBJECT_TAG = "markus"
 
 
 ####################

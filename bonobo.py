@@ -432,6 +432,8 @@ class Experiment():
 
         if self.success_frequency is not None:
             file_data.extend([("is_correct", self.is_correct)])
+        else:
+            file_data.extend([("is_correct", "None")])
 
         file_data.extend([("response_time", response_time)])
 
@@ -737,7 +739,7 @@ class SimultaneousPresentationOverlap(Experiment):
     def get_file_data(self):
         if self.is_combination:
             return [("STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS", config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS),
-                    ("overlap_time", "na"),
+                    ("overlap_time", self.overlap_time),
                     ("STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS", config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS)]
         else:
             return [("overlap_time", self.overlap_time),

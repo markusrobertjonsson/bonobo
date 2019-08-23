@@ -321,7 +321,7 @@ class Experiment():
         if self.is_combination:
             # print(self.success_frequency)
             if self.is_sub_experiment_done():
-                self.root.destroy()
+                self.root.destroy()  # Quits mainloop of current sub-experiment to get to the next
                 return
 
         self.blackout_displayed = False
@@ -367,7 +367,7 @@ class Experiment():
         Return the file name of the result file.
         """
         if self.is_combination:
-            return CombinationAug2019.result_filename()
+            return Combination1.result_filename()
         else:
             experiment = self.experiment_abbreviation()
             subject = config.SUBJECT_TAG.lower()
@@ -680,12 +680,12 @@ class StimulusWindow():
 
 
 class MatchingToSample(Experiment):
-    def __init__(self, responses_are_samples):
+    def __init__(self, is_combination=False, responses_are_samples=False):
         # If true, the response buttons are the same as the samples.self
         # If false, the response buttons are the symbols in self.display_options
         self.responses_are_samples = responses_are_samples
 
-        super().__init__()
+        super().__init__(is_combination)
 
         self.is_correct = None
 
@@ -719,22 +719,21 @@ class MatchingToSample(Experiment):
     def _left_clicked(self, event=None):
         if self.options_displayed:
             self.is_correct = self.left_is_correct
-            if self.is_correct:
-                self.correct_choice()
-            else:
-                self.incorrect_choice()
-            self.options_displayed = False
-            self.write_to_file(event)
+            return self._option_clicked(event)
 
     def _right_clicked(self, event=None):
         if self.options_displayed:
             self.is_correct = not self.left_is_correct
-            if self.is_correct:
-                self.correct_choice()
-            else:
-                self.incorrect_choice()
-            self.options_displayed = False
-            self.write_to_file(event)
+            return self._option_clicked(event)
+
+    def _option_clicked(self, event):
+        if self.is_correct:
+            self.correct_choice()
+        else:
+            self.incorrect_choice()
+        self.options_displayed = False
+        self.write_to_file(event)
+        return "break"
 
     def start_trial(self, event=None):
         self.clear()
@@ -751,6 +750,9 @@ class MatchingToSample(Experiment):
     def get_file_data(self):
         return [("SYMBOL_SHOW_TIME_MTS", config.SYMBOL_SHOW_TIME_MTS),
                 ("SYMBOL_WIDTH_MTS", config.SYMBOL_WIDTH_MTS)]
+
+    def is_sub_experiment_done(self):
+        return (self.success_frequency >= 0.8)
 
     def experiment_abbreviation(self):
         if self.responses_are_samples:
@@ -1102,7 +1104,7 @@ class SequenceDiscriminationProbe(Experiment):
         return config.SEQUENCE_DISCRIMINATION_PROBE
 
 
-class CombinationAug2019():
+class Combination1():
     def __init__(self):
         filename = self.result_filename()
         self.result_file = ResultFile(filename)
@@ -1114,59 +1116,59 @@ class CombinationAug2019():
             sub_experiment_index = int(sub_experiment_index)
 
         if sub_experiment_index == 1:
-            exp1 = Pretraining(is_combination=True)
+            exp1 = MatchingToSample(is_combination=True, responses_are_samples=True)
             exp1.sub_experiment_index = 1
             exp1.root.mainloop()
 
         if sub_experiment_index <= 2:
-            exp2 = SimultaneousPresentation(is_combination=True)
+            exp2 = MatchingToSample(is_combination=True, responses_are_samples=False)
             exp2.sub_experiment_index = 2
             if sub_experiment_index < 2:
                 exp2.space_pressed()
                 exp2.finished_trial_cnt = exp1.finished_trial_cnt
             exp2.root.mainloop()
 
-        if sub_experiment_index <= 3:
-            exp3 = SimultaneousPresentationOverlap(is_combination=True, overlap_time=1000)
-            exp3.sub_experiment_index = 3
-            if sub_experiment_index < 3:
-                exp3.space_pressed()
-                exp3.finished_trial_cnt = exp2.finished_trial_cnt
-            exp3.root.mainloop()
+        # if sub_experiment_index <= 3:
+        #     exp3 = SimultaneousPresentationOverlap(is_combination=True, overlap_time=1000)
+        #     exp3.sub_experiment_index = 3
+        #     if sub_experiment_index < 3:
+        #         exp3.space_pressed()
+        #         exp3.finished_trial_cnt = exp2.finished_trial_cnt
+        #     exp3.root.mainloop()
 
-        if sub_experiment_index <= 4:
-            exp4 = SimultaneousPresentationOverlap(is_combination=True, overlap_time=500)
-            exp4.sub_experiment_index = 4
-            if sub_experiment_index < 4:
-                exp4.space_pressed()
-                exp4.finished_trial_cnt = exp3.finished_trial_cnt
-            exp4.root.mainloop()
+        # if sub_experiment_index <= 4:
+        #     exp4 = SimultaneousPresentationOverlap(is_combination=True, overlap_time=500)
+        #     exp4.sub_experiment_index = 4
+        #     if sub_experiment_index < 4:
+        #         exp4.space_pressed()
+        #         exp4.finished_trial_cnt = exp3.finished_trial_cnt
+        #     exp4.root.mainloop()
 
-        if sub_experiment_index <= 5:
-            exp5 = SimultaneousPresentationOverlap(is_combination=True, overlap_time=250)
-            exp5.sub_experiment_index = 5
-            if sub_experiment_index < 5:
-                exp5.space_pressed()
-                exp5.finished_trial_cnt = exp4.finished_trial_cnt
-            exp5.root.mainloop()
+        # if sub_experiment_index <= 5:
+        #     exp5 = SimultaneousPresentationOverlap(is_combination=True, overlap_time=250)
+        #     exp5.sub_experiment_index = 5
+        #     if sub_experiment_index < 5:
+        #         exp5.space_pressed()
+        #         exp5.finished_trial_cnt = exp4.finished_trial_cnt
+        #     exp5.root.mainloop()
 
-        if sub_experiment_index <= 6:
-            exp6 = SimultaneousPresentationOverlap(is_combination=True, overlap_time=0)
-            exp6.sub_experiment_index = 6
-            if sub_experiment_index < 6:
-                exp6.space_pressed()
-                exp6.finished_trial_cnt = exp5.finished_trial_cnt
-            exp6.root.mainloop()
+        # if sub_experiment_index <= 6:
+        #     exp6 = SimultaneousPresentationOverlap(is_combination=True, overlap_time=0)
+        #     exp6.sub_experiment_index = 6
+        #     if sub_experiment_index < 6:
+        #         exp6.space_pressed()
+        #         exp6.finished_trial_cnt = exp5.finished_trial_cnt
+        #     exp6.root.mainloop()
 
     @staticmethod
     def result_filename():
-        experiment = CombinationAug2019.experiment_abbreviation()
+        experiment = Combination1.experiment_abbreviation()
         subject = config.SUBJECT_TAG.lower()
         return subject + "_" + experiment + ".csv"
 
     @staticmethod
     def experiment_abbreviation():
-        return "CombinationAug2019"
+        return "Combination1"
 
 
 class ResultFile():
@@ -1280,13 +1282,13 @@ def timestamp():
 
 if __name__ == '__main__':
     if config.EXPERIMENT == config.COMBINATION1:
-        CombinationAug2019()
+        Combination1()
     else:
         e = None
         if config.EXPERIMENT == config.MATCHING_TO_SAMPLE_SAMPLE:
-            e = MatchingToSample(responses_are_samples=True)
+            e = MatchingToSample(is_combination=False, responses_are_samples=True)
         elif config.EXPERIMENT == config.MATCHING_TO_SAMPLE_SYMBOLS:
-            e = MatchingToSample(responses_are_samples=False)
+            e = MatchingToSample(is_combination=False, responses_are_samples=False)
         # elif config.EXPERIMENT == config.SIMULTANEOUS_PRESENTATION:
         #     e = SimultaneousPresentation()
         # elif config.EXPERIMENT == config.SIMULTANEOUS_PRESENTATION_OVERLAP:

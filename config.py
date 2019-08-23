@@ -1,12 +1,12 @@
 # These names are used in the name of the result file.
 MATCHING_TO_SAMPLE_SYMBOLS = "MTS_SY"
 MATCHING_TO_SAMPLE_SAMPLE = "MTS_SA"
-COMBINATION1 = "CombinationAug2019"
+COMBINATION1 = "Combination1"
 
 # The experiment to run. Remove the "#" before the one to run.
 # EXPERIMENT = MATCHING_TO_SAMPLE_SAMPLE
-EXPERIMENT = MATCHING_TO_SAMPLE_SYMBOLS
-# EXPERIMENT = COMBINATION1
+# EXPERIMENT = MATCHING_TO_SAMPLE_SYMBOLS
+EXPERIMENT = COMBINATION1
 
 # The subject exposed to the experiment. Used in the name of the result file and
 # as the "subject" column in the result file

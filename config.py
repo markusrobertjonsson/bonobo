@@ -1,6 +1,6 @@
 # These names are used in the name of the result file.
-MATCHING_TO_SAMPLE_SYMBOLS = "MTS_SY"
 MATCHING_TO_SAMPLE_SAMPLE = "MTS_SA"
+MATCHING_TO_SAMPLE_SYMBOLS = "MTS_SY"
 COMBINATION1 = "Combination1"
 
 # The experiment to run. Remove the "#" before the one to run.

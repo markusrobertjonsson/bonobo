@@ -26,7 +26,6 @@ START_SCREEN_COLOR = hex_format % config.START_SCREEN_COLOR_RGB
 BACKGROUND_COLOR = hex_format % config.BACKGROUND_COLOR_RGB
 NEXT_BUTTON_COLOR = hex_format % config.NEXT_BUTTON_COLOR_RGB
 BLACKOUT_COLOR = hex_format % config.BLACKOUT_COLOR_RGB
-UNDESIRED_CLICK_BLACKOUT_COLOR = hex_format % config.UNDESIRED_CLICK_BLACKOUT_COLOR_RGB
 COLOR_A = hex_format % config.COLOR_A_RGB
 COLOR_B = hex_format % config.COLOR_B_RGB
 
@@ -37,7 +36,7 @@ frame_options = dict()  # For debugging frame positioning
 #                  'bd': 0}
 
 canvas_options = {'bd': 0, 'highlightthickness': 0}
-# canvas_options = {'bd': 3, 'highlightthickness': 3}
+# canvas_options = {'bd': 1, 'highlightthickness': 1}
 
 TOL = 0.99
 TIMETOL = 3  # Round delay times to nearest millisecond
@@ -78,8 +77,14 @@ class Experiment():
         if self.is_combination:
             self.toggle_fullscreen()
 
+        # self.stimulus_window = StimulusWindow(self.root)
+
     def _make_images(self):
-        self.image_files = {'circle.gif': PhotoImage(file='circle.gif'),
+        self.image_files = {'blue_star.gif': PhotoImage(file='blue_star.gif'),
+                            'yellow_circle.gif': PhotoImage(file='yellow_circle.gif'),
+                            'white_star.gif': PhotoImage(file='white_star.gif'),
+                            'white_circle.gif': PhotoImage(file='white_circle.gif'),
+                            'circle.gif': PhotoImage(file='circle.gif'),
                             'diamond.gif': PhotoImage(file='diamond.gif'),
                             'star.gif': PhotoImage(file='star.gif'),
                             'balls.gif': PhotoImage(file='balls.gif'),
@@ -119,17 +124,22 @@ class Experiment():
 
         self.top_left_canvas = tk.Canvas(self.top_frame, width=self.canvas_width,
                                          height=self.canvas_width, **canvas_options)
+        self.top_mid_canvas = tk.Canvas(self.top_frame, width=self.canvas_width,
+                                        height=self.canvas_width, **canvas_options)
         self.top_right_canvas = tk.Canvas(self.top_frame, width=self.canvas_width,
                                           height=self.canvas_width, **canvas_options)
-        self.top_right_canvas.bind("<Button-1>", self.right_clicked)
+        # self.top_right_canvas.bind("<Button-1>", self.right_clicked)
         self.top_left_canvas.pack(side=tk.LEFT)
+        # self.top_mid_canvas.pack(side=tk.MIDDLE)
+        self.top_mid_canvas.place(relx=.5, rely=.5, anchor="center")
         self.top_right_canvas.pack(side=tk.RIGHT)
 
         self.top_frame.pack_propagate(False)
         self.top_frame.pack(expand=True, side=tk.TOP)
 
         # MIDDLE
-        space_width = h / 3
+        # space_width = h / 3
+        space_width = h
         self.middle_frame = tk.Frame(self.root, width=W, height=h, **frame_options)
 
         self.middle_left_frame = tk.Frame(self.middle_frame, width=(W - space_width) / 2, height=h,
@@ -148,12 +158,12 @@ class Experiment():
 
         self.left_canvas = tk.Canvas(self.middle_left_frame, width=self.canvas_width,
                                      height=self.canvas_width, **canvas_options)
-        # self.left_canvas.bind("<Button-1>", self.left_clicked)
+        self.left_canvas.bind("<Button-1>", self.left_clicked)
         self.left_canvas.pack(side=tk.RIGHT)
 
         self.right_canvas = tk.Canvas(self.middle_right_frame, width=self.canvas_width,
                                       height=self.canvas_width, **canvas_options)
-        # self.right_canvas.bind("<Button-1>", self.right_clicked)
+        self.right_canvas.bind("<Button-1>", self.right_clicked)
         self.right_canvas.pack(side=tk.LEFT)
 
         self.middle_frame.pack_propagate(False)
@@ -166,7 +176,7 @@ class Experiment():
                                        height=self.bottom_canvas_width, **canvas_options)
         self.bottom_left_canvas = tk.Canvas(self.bottom_frame, width=self.canvas_width,
                                             height=self.canvas_width, **canvas_options)
-        self.bottom_left_canvas.bind("<Button-1>", self.left_clicked)
+        # self.bottom_left_canvas.bind("<Button-1>", self.left_clicked)
         self.bottom_right_canvas = tk.Canvas(self.bottom_frame, width=self.canvas_width,
                                              height=self.canvas_width, **canvas_options)
         self.bottom_left_canvas.pack(side=tk.LEFT)
@@ -247,6 +257,7 @@ class Experiment():
         self.bottom_left_canvas.configure(background=color)
         self.bottom_right_canvas.configure(background=color)
         self.top_left_canvas.configure(background=color)
+        self.top_mid_canvas.configure(background=color)
         self.top_right_canvas.configure(background=color)
 
     def clear(self):
@@ -258,6 +269,7 @@ class Experiment():
         self.right_canvas.delete(tk.ALL)
         self.bottom_canvas.delete(tk.ALL)
         self.top_left_canvas.delete(tk.ALL)
+        self.top_mid_canvas.delete(tk.ALL)
         self.top_right_canvas.delete(tk.ALL)
         self.bottom_left_canvas.delete(tk.ALL)
         self.bottom_right_canvas.delete(tk.ALL)
@@ -281,10 +293,13 @@ class Experiment():
         self.next_displayed = True
 
     def display_stimulus_symbol(self, symbol, canvas):
+        self._display_symbol(symbol, canvas)
+        self.stimulus_displayed = True
+
+    def _display_symbol(self, symbol, canvas):
         w = canvas.winfo_width()
         h = canvas.winfo_height()
         canvas.create_image(w / 2, h / 2, image=self.image_files[symbol], anchor=tk.CENTER)
-        self.stimulus_displayed = True
 
     def next_clicked(self, event=None):
         self.last_clicked_button_canvas = "NB"
@@ -341,10 +356,10 @@ class Experiment():
         self.clicked_option = "right"
         return self._right_clicked(event)
 
-    def _left_clicked(event):
+    def _left_clicked(self, event):
         assert(False)  # Must be overridden
 
-    def _right_clicked(event):
+    def _right_clicked(self, event):
         assert(False)  # Must be overridden
 
     def result_filename(self):
@@ -521,6 +536,246 @@ class Experiment():
             else:
                 return "INTER_STIMULUS"
 
+    def display_shape(self, symbol, canvas):
+        # L = self.L * 0.99  # self.top_frame.winfo_height() * config.SYMBOL_WIDTH
+        w = self.canvas_width
+        L = w * config.SYMBOL_WIDTH_MTS
+        square_args = [(w - L) / 2, (w - L) / 2, (w - L) / 2 + L, (w - L) / 2 + L]
+        if symbol == 'bluesquare':
+            canvas.create_rectangle(*square_args, fill='blue', outline="", tags="shape")
+        elif symbol == 'yellowsquare':
+            canvas.create_rectangle(*square_args, fill='yellow', outline="", tags="shape")
+        else:
+            raise Exception("Unknown symbol {}".format(symbol))
+
+
+class StimulusWindow():
+    def __init__(self, root):
+        self.root = tk.Toplevel(root)
+        # self.root.focus_set()
+        self.is_fullscreen = False
+        self._make_widgets()
+
+    def toggle_fullscreen(self, event=None):
+        self.is_fullscreen = not self.is_fullscreen  # Just toggling the boolean
+        self.root.attributes("-fullscreen", self.is_fullscreen)
+        return "break"
+
+    def end_fullscreen(self, event=None):
+        self.is_fullscreen = False
+        self.root.attributes("-fullscreen", False)
+        return "break"
+
+    def _make_widgets(self):
+        self.root.bind("<F11>", self.toggle_fullscreen)
+        # W = self.root.winfo_screenwidth() * TOL
+        # H = self.root.winfo_screenheight() * TOL
+        # h = H / 3
+
+        # self.canvas_width = h
+
+        # # self.root.attributes('-zoomed', True)  # Maximize window
+
+        # self.is_fullscreen = False
+        # self.root.bind("<F11>", self.toggle_fullscreen)
+        self.root.bind("<Escape>", self.end_fullscreen)
+        # self.root.bind("<space>", self.space_pressed)
+        # self.root.bind("<Button-1>", self.undesired_click)
+
+        # # TOP
+        # self.top_frame = tk.Frame(self.root, width=W, height=h, **frame_options)
+
+        # self.top_left_canvas = tk.Canvas(self.top_frame, width=self.canvas_width,
+        #                                  height=self.canvas_width, **canvas_options)
+        # self.top_mid_canvas = tk.Canvas(self.top_frame, width=self.canvas_width,
+        #                                 height=self.canvas_width, **canvas_options)
+        # self.top_right_canvas = tk.Canvas(self.top_frame, width=self.canvas_width,
+        #                                   height=self.canvas_width, **canvas_options)
+        # # self.top_right_canvas.bind("<Button-1>", self.right_clicked)
+        # self.top_left_canvas.pack(side=tk.LEFT)
+        # # self.top_mid_canvas.pack(side=tk.MIDDLE)
+        # self.top_mid_canvas.place(relx=.5, rely=.5, anchor="center")
+        # self.top_right_canvas.pack(side=tk.RIGHT)
+
+        # self.top_frame.pack_propagate(False)
+        # self.top_frame.pack(expand=True, side=tk.TOP)
+
+        # # MIDDLE
+        # space_width = h / 3
+        # self.middle_frame = tk.Frame(self.root, width=W, height=h, **frame_options)
+
+        # self.middle_left_frame = tk.Frame(self.middle_frame, width=(W - space_width) / 2, height=h,
+        #                                   **frame_options)
+        # self.middle_left_frame.pack_propagate(False)
+        # self.middle_left_frame.pack(side=tk.LEFT)
+
+        # self.middle_space_frame = tk.Frame(self.middle_frame, width=space_width, height=h,
+        #                                    **frame_options)
+        # self.middle_space_frame.pack_propagate(False)
+        # self.middle_space_frame.pack(side=tk.LEFT)
+        # self.middle_right_frame = tk.Frame(self.middle_frame, width=(W - space_width) / 2,
+        #                                    height=h, **frame_options)
+        # self.middle_right_frame.pack_propagate(False)
+        # self.middle_right_frame.pack(side=tk.LEFT)
+
+        # self.left_canvas = tk.Canvas(self.middle_left_frame, width=self.canvas_width,
+        #                              height=self.canvas_width, **canvas_options)
+        # self.left_canvas.bind("<Button-1>", self.left_clicked)
+        # self.left_canvas.pack(side=tk.RIGHT)
+
+        # self.right_canvas = tk.Canvas(self.middle_right_frame, width=self.canvas_width,
+        #                               height=self.canvas_width, **canvas_options)
+        # self.right_canvas.bind("<Button-1>", self.right_clicked)
+        # self.right_canvas.pack(side=tk.LEFT)
+
+        # self.middle_frame.pack_propagate(False)
+        # self.middle_frame.pack(expand=True, side=tk.TOP)
+
+        # # BOTTOM
+        # self.bottom_canvas_width = h * config.NEXT_BUTTON_WIDTH
+        # self.bottom_frame = tk.Frame(self.root, width=W, height=h, **frame_options)
+        # self.bottom_canvas = tk.Canvas(self.bottom_frame, width=self.bottom_canvas_width,
+        #                                height=self.bottom_canvas_width, **canvas_options)
+        # self.bottom_left_canvas = tk.Canvas(self.bottom_frame, width=self.canvas_width,
+        #                                     height=self.canvas_width, **canvas_options)
+        # # self.bottom_left_canvas.bind("<Button-1>", self.left_clicked)
+        # self.bottom_right_canvas = tk.Canvas(self.bottom_frame, width=self.canvas_width,
+        #                                      height=self.canvas_width, **canvas_options)
+        # self.bottom_left_canvas.pack(side=tk.LEFT)
+        # self.bottom_right_canvas.pack(side=tk.RIGHT)
+        # self.bottom_canvas.bind("<Button-1>", self.next_clicked)
+        # self.bottom_canvas.pack(expand=True)
+
+        # self.bottom_frame.pack_propagate(False)
+        # self.bottom_frame.pack(expand=True, side=tk.BOTTOM)
+
+        # self.root.update()
+        # w = self.bottom_canvas.winfo_width()
+        # pw = w * 0.1
+        # d1 = w / 2 - pw / 2
+        # d2 = w / 2 + pw / 2
+        # self.next_symbol_args = [0, d1,
+        #                          d1, d1,
+        #                          d1, 0,
+        #                          d2, 0,
+        #                          d2, d1,
+        #                          w, d1,
+        #                          w, d2,
+        #                          d2, d2,
+        #                          d2, w,
+        #                          d1, w,
+        #                          d1, d2,
+        #                          0, d2]
+
+        # if config.HIDE_MOUSE_POINTER:
+        #     # Hide mouse pointer
+        #     self.root.config(cursor="none")
+
+        # self.root.title("vera")
+        # if self.is_combination:
+        #     self.root.protocol("WM_DELETE_WINDOW", self.delete_window)
+
+    def delete_window(self):
+        exit(0)
+
+
+class MatchingToSample(Experiment):
+    def __init__(self, responses_are_samples):
+        # If true, the response buttons are the same as the samples.self
+        # If false, the response buttons are the symbols in self.display_options
+        self.responses_are_samples = responses_are_samples
+
+        super().__init__()
+
+        self.is_correct = None
+
+        # The last displayed sample
+        self.sample = None
+
+        self.options_displayed = False
+
+        self.SAMPLE1 = 'yellowsquare'
+        self.SAMPLE2 = 'bluesquare'
+
+        self.POT10 = [self.SAMPLE1, self.SAMPLE2] * 5
+
+        self._create_new_samples()
+
+    def _create_new_samples(self):
+        self.sample_pot = list(self.POT10)  # Make a copy
+        random.shuffle(self.sample_pot)
+
+    def display_options(self):
+        self.left_is_correct = (self.sample == "yellowsquare")
+        if self.responses_are_samples:
+            self.display_shape(self.SAMPLE1, self.left_canvas)
+            self.display_shape(self.SAMPLE2, self.right_canvas)
+        else:
+            self._display_symbol("yellow_circle.gif", self.left_canvas)
+            self._display_symbol("blue_star.gif", self.right_canvas)
+        self.options_displayed = True
+        self.tic = time.time()
+
+    def _left_clicked(self, event=None):
+        if self.options_displayed:
+            self.is_correct = self.left_is_correct
+            if self.is_correct:
+                self.correct_choice()
+            else:
+                self.incorrect_choice()
+            self.options_displayed = False
+            self.write_to_file(event)
+
+    def _right_clicked(self, event=None):
+        if self.options_displayed:
+            self.is_correct = not self.left_is_correct
+            if self.is_correct:
+                self.correct_choice()
+            else:
+                self.incorrect_choice()
+            self.options_displayed = False
+            self.write_to_file(event)
+
+    def start_trial(self, event=None):
+        self.clear()
+        self.display_random_symbol()
+        job = self.root.after(config.SYMBOL_SHOW_TIME_MTS, self.display_options)
+        self.current_after_jobs = [job]
+
+    def display_random_symbol(self):
+        self.sample = self.sample_pot.pop()
+        if len(self.sample_pot) == 0:
+            self._create_new_samples()
+        self.display_shape(self.sample, self.top_mid_canvas)
+
+    def get_file_data(self):
+        return [("SYMBOL_SHOW_TIME_MTS", config.SYMBOL_SHOW_TIME_MTS),
+                ("SYMBOL_WIDTH_MTS", config.SYMBOL_WIDTH_MTS)]
+
+    def experiment_abbreviation(self):
+        if self.responses_are_samples:
+            return config.MATCHING_TO_SAMPLE_SAMPLE
+        else:
+            return config.MATCHING_TO_SAMPLE_SYMBOLS
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ---------------------------------------------------------------------------
 
 class Pretraining(Experiment):
     def __init__(self, is_combination=False):
@@ -558,11 +813,6 @@ class Pretraining(Experiment):
             self.right_option_displayed = True
             self.left_option_displayed = False
         self.tic = time.time()
-
-    def _display_symbol(self, symbol, canvas):
-        w = canvas.winfo_width()
-        h = canvas.winfo_height()
-        canvas.create_image(w / 2, h / 2, image=self.image_files[symbol], anchor=tk.CENTER)
 
     def _left_clicked(self, event=None):
         if self.left_option_displayed:
@@ -626,11 +876,6 @@ class SimultaneousPresentation(Experiment):
         self._display_symbol(config.RIGHT_OPTION, self.top_right_canvas)
         self.options_displayed = True
         self.tic = time.time()
-
-    def _display_symbol(self, symbol, canvas):
-        w = canvas.winfo_width()
-        h = canvas.winfo_height()
-        canvas.create_image(w / 2, h / 2, image=self.image_files[symbol], anchor=tk.CENTER)
 
     def _left_clicked(self, event=None):
         if self.options_displayed:
@@ -707,11 +952,6 @@ class SimultaneousPresentationOverlap(Experiment):
         self._display_symbol(config.RIGHT_OPTION, self.top_right_canvas)
         self.options_displayed = True
         self.tic = time.time()
-
-    def _display_symbol(self, symbol, canvas):
-        w = canvas.winfo_width()
-        h = canvas.winfo_height()
-        canvas.create_image(w / 2, h / 2, image=self.image_files[symbol], anchor=tk.CENTER)
 
     def _left_clicked(self, event=None):
         if self.options_displayed:
@@ -818,11 +1058,6 @@ class SequenceDiscriminationProbe(Experiment):
         self._display_symbol(config.RIGHT_OPTION, self.top_right_canvas)
         self.options_displayed = True
         self.tic = time.time()
-
-    def _display_symbol(self, symbol, canvas):
-        w = canvas.winfo_width()
-        h = canvas.winfo_height()
-        canvas.create_image(w / 2, h / 2, image=self.image_files[symbol], anchor=tk.CENTER)
 
     def _left_clicked(self, event=None):
         if self.options_displayed:
@@ -1048,14 +1283,16 @@ if __name__ == '__main__':
         CombinationAug2019()
     else:
         e = None
-        if config.EXPERIMENT == config.PRETRAINING:
-            e = Pretraining()
-        elif config.EXPERIMENT == config.SIMULTANEOUS_PRESENTATION:
-            e = SimultaneousPresentation()
-        elif config.EXPERIMENT == config.SIMULTANEOUS_PRESENTATION_OVERLAP:
-            e = SimultaneousPresentationOverlap()
-        elif config.EXPERIMENT == config.SEQUENCE_DISCRIMINATION_PROBE:
-            e = SequenceDiscriminationProbe()
+        if config.EXPERIMENT == config.MATCHING_TO_SAMPLE_SAMPLE:
+            e = MatchingToSample(responses_are_samples=True)
+        elif config.EXPERIMENT == config.MATCHING_TO_SAMPLE_SYMBOLS:
+            e = MatchingToSample(responses_are_samples=False)
+        # elif config.EXPERIMENT == config.SIMULTANEOUS_PRESENTATION:
+        #     e = SimultaneousPresentation()
+        # elif config.EXPERIMENT == config.SIMULTANEOUS_PRESENTATION_OVERLAP:
+        #     e = SimultaneousPresentationOverlap()
+        # elif config.EXPERIMENT == config.SEQUENCE_DISCRIMINATION_PROBE:
+        #     e = SequenceDiscriminationProbe()
         else:
             print("Error: Undefined experiment name '" + config.EXPERIMENT + "'.")
         if e:

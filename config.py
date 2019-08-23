@@ -1,20 +1,16 @@
 # These names are used in the name of the result file.
-PRETRAINING = "Pretraining"
-SIMULTANEOUS_PRESENTATION = "SimulataneousPresentation"
-SIMULTANEOUS_PRESENTATION_OVERLAP = "SimulataneousPresentationOverlap"
-SEQUENCE_DISCRIMINATION_PROBE = "SequenceDiscriminationProbe"
+MATCHING_TO_SAMPLE_SYMBOLS = "MTS_SY"
+MATCHING_TO_SAMPLE_SAMPLE = "MTS_SA"
 COMBINATION1 = "CombinationAug2019"
 
 # The experiment to run. Remove the "#" before the one to run.
-# EXPERIMENT = PRETRAINING
-# EXPERIMENT = SIMULTANEOUS_PRESENTATION
-# EXPERIMENT = SIMULTANEOUS_PRESENTATION_OVERLAP
-# EXPERIMENT = SEQUENCE_DISCRIMINATION_PROBE
-EXPERIMENT = COMBINATION1
+# EXPERIMENT = MATCHING_TO_SAMPLE_SAMPLE
+EXPERIMENT = MATCHING_TO_SAMPLE_SYMBOLS
+# EXPERIMENT = COMBINATION1
 
 # The subject exposed to the experiment. Used in the name of the result file and
 # as the "subject" column in the result file
-SUBJECT_TAG = "markus"
+SUBJECT_TAG = "johan"
 
 
 ####################
@@ -43,7 +39,7 @@ BLACKOUT_COLOR_RGB = (100, 100, 100)
 NEXT_BUTTON_WIDTH = 0.65
 
 # The time (in milliseconds) for the black screen after incorrect answer
-BLACKOUT_TIME = 3000
+BLACKOUT_TIME = 5000
 
 # The delay (in milliseconds) after correct answer, before the next symbol is displayed
 DELAY_AFTER_REWARD = 1000
@@ -68,11 +64,17 @@ LEFT_OPTION = 'horizontal_button.gif'
 # AA, BB and BA
 RIGHT_OPTION = 'vertical_button.gif'
 
-# The time (in milliseconds) for the black screen after undesired click
-UNDESIRED_CLICK_BLACKOUT_TIME = 3000
 
-# The color of the "blackout" screen after undesired click
-UNDESIRED_CLICK_BLACKOUT_COLOR_RGB = (100, 100, 100)
+###############################
+# Matching to sample settings #
+###############################
+
+# The width of the (square) sample (and the response buttons for )
+SYMBOL_WIDTH_MTS = 0.75
+
+# The time (in milliseconds) that the symbol is displayed by itself in MTS
+# before the options appear
+SYMBOL_SHOW_TIME_MTS = 1000
 
 
 #########################################

@@ -410,25 +410,18 @@ class Experiment():
     def write_to_file(self, event, is_undesired=False):
         if not is_undesired:
             self.finished_trial_cnt += 1
-        stimulus_acronym = "None"
-        if hasattr(self, "stimulus") and self.stimulus is not None:
-            if self.stimulus == COLOR_A:
-                stimulus_acronym = "A"
-            elif self.stimulus == COLOR_B:
-                stimulus_acronym = "B"
-            elif self.stimulus == SequenceDiscriminationProbe.LONG_AB:
-                stimulus_acronym = "AB"
-            elif self.stimulus == SequenceDiscriminationProbe.SHORT_AB:
-                stimulus_acronym = "aB"
-            else:
-                assert(False)
+
+        stimulus_acronym = self.get_stimulus_acronym()
+
         toc = time.time()
         response_time = None
         if hasattr(self, "tic") and self.tic is not None:
             response_time = round(toc - self.tic, TIMETOL)
 
         file_data = list()
-        if self.success_frequency is not None:
+        if is_undesired:
+            file_data.extend([("freq_correct", self.success_frequency)])
+        elif self.success_frequency is not None:
             self.update_success_frequency(self.is_correct)
             file_data.extend([("freq_correct", self.success_frequency)])
         else:
@@ -445,7 +438,7 @@ class Experiment():
                           ("stimulus", stimulus_acronym),
                           ("response", self.clicked_option)])
 
-        if self.success_frequency is not None:
+        if self.success_frequency is not None and not is_undesired:
             file_data.extend([("is_correct", self.is_correct)])
         else:
             file_data.extend([("is_correct", "None")])
@@ -496,6 +489,23 @@ class Experiment():
             values.append(value)
         self.result_file.write(headers, values)
 
+    def get_stimulus_acronym(self):
+        stimulus_acronym = "None"
+        if hasattr(self, "stimulus") and self.stimulus is not None:
+            if self.stimulus == COLOR_A:
+                stimulus_acronym = "A"
+            elif self.stimulus == COLOR_B:
+                stimulus_acronym = "B"
+            elif self.stimulus == SequenceDiscriminationProbe.LONG_AB:
+                stimulus_acronym = "AB"
+            elif self.stimulus == SequenceDiscriminationProbe.SHORT_AB:
+                stimulus_acronym = "aB"
+            else:
+                assert(False)
+            return stimulus_acronym
+        else:
+            return None
+
     def _cell_touched(self, x, y):
         w = self.root.winfo_width()
         h = self.root.winfo_height()
@@ -536,7 +546,7 @@ class Experiment():
             else:
                 return "INTER_STIMULUS"
 
-    def display_shape(self, symbol, canvas):
+    def _display_shape(self, symbol, canvas):
         # L = self.L * 0.99  # self.top_frame.winfo_height() * config.SYMBOL_WIDTH
         w = self.canvas_width
         L = w * config.SYMBOL_WIDTH_MTS
@@ -708,8 +718,8 @@ class MatchingToSample(Experiment):
     def display_options(self):
         self.left_is_correct = (self.sample == "yellowsquare")
         if self.responses_are_samples:
-            self.display_shape(self.SAMPLE1, self.left_canvas)
-            self.display_shape(self.SAMPLE2, self.right_canvas)
+            self._display_shape(self.SAMPLE1, self.left_canvas)
+            self._display_shape(self.SAMPLE2, self.right_canvas)
         else:
             self._display_symbol("yellow_circle.gif", self.left_canvas)
             self._display_symbol("blue_star.gif", self.right_canvas)
@@ -745,11 +755,14 @@ class MatchingToSample(Experiment):
         self.sample = self.sample_pot.pop()
         if len(self.sample_pot) == 0:
             self._create_new_samples()
-        self.display_shape(self.sample, self.top_mid_canvas)
+        self._display_shape(self.sample, self.top_mid_canvas)
 
     def get_file_data(self):
         return [("SYMBOL_SHOW_TIME_MTS", config.SYMBOL_SHOW_TIME_MTS),
                 ("SYMBOL_WIDTH_MTS", config.SYMBOL_WIDTH_MTS)]
+
+    def get_stimulus_acronym(self):
+        return self.sample
 
     def is_sub_experiment_done(self):
         return (self.success_frequency >= 0.8)

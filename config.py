@@ -69,6 +69,9 @@ RIGHT_OPTION = 'vertical_button.gif'
 # Matching to sample settings #
 ###############################
 
+# Whether or not the yellow response should be to the 'left' or to the 'right'
+YELLOW_POS = 'right'
+
 # The width of the (square) sample (and the response buttons for )
 SYMBOL_WIDTH_MTS = 0.75
 

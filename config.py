@@ -64,12 +64,19 @@ LEFT_OPTION = 'horizontal_button.gif'
 # AA, BB and BA
 RIGHT_OPTION = 'vertical_button.gif'
 
+# The width (and height) of the stimulus canvas on the second screen, as a fraction of screen
+# height
+SCREEN2_STIMULUS_WIDTH = 0.5
+
 
 ###############################
 # Matching to sample settings #
 ###############################
 
-# The width of the (square) sample (and the response buttons for )
+# MTS_SY, whether or not the yellow circle should be to the 'left' or to the 'right'
+CIRCLE_POS = 'left'
+
+# The width of the (square) sample (and the response buttons in MTS_SA)
 SYMBOL_WIDTH_MTS = 0.75
 
 # The time (in milliseconds) that the symbol is displayed by itself in MTS

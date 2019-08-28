@@ -73,8 +73,8 @@ SCREEN2_STIMULUS_WIDTH = 0.5
 # Matching to sample settings #
 ###############################
 
-# MTS_SY, whether or not the yellow circle should be to the 'left' or to the 'right'
-CIRCLE_POS = 'left'
+# Whether or not the yellow response should be to the 'left' or to the 'right'
+YELLOW_POS = 'right'
 
 # The width of the (square) sample (and the response buttons in MTS_SA)
 SYMBOL_WIDTH_MTS = 0.75

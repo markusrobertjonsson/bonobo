@@ -804,10 +804,10 @@ class MatchingToSample(Experiment):
 
         self.options_displayed = False
 
-        self.SAMPLE1 = 'yellowsquare'
-        self.SAMPLE2 = 'bluesquare'
+        self.YELLOWSQUARE = 'yellowsquare'
+        self.BLUESQUARE = 'bluesquare'
 
-        self.POT10 = [self.SAMPLE1, self.SAMPLE2] * 5
+        self.POT10 = [self.YELLOWSQUARE, self.BLUESQUARE] * 5
 
         self._create_new_samples()
 
@@ -816,14 +816,19 @@ class MatchingToSample(Experiment):
         random.shuffle(self.sample_pot)
 
     def display_options(self):
-        self.left_is_correct = (self.sample == "yellowsquare")
-        if self.responses_are_samples:
-            self._display_shape(self.SAMPLE1, self.left_canvas,
-                                shape_scale=config.SYMBOL_WIDTH_MTS)
-            self._display_shape(self.SAMPLE2, self.right_canvas,
-                                shape_scale=config.SYMBOL_WIDTH_MTS)
+        if config.YELLOW_POS == 'left':
+            self.left_is_correct = (self.sample == self.YELLOWSQUARE)
         else:
-            if config.CIRCLE_POS == 'left':
+            self.left_is_correct = (self.sample != self.YELLOWSQUARE)
+        if self.responses_are_samples:
+            if config.YELLOW_POS == 'left':
+                self._display_shape(self.YELLOWSQUARE, self.left_canvas)
+                self._display_shape(self.BLUESQUARE, self.right_canvas)
+            else:
+                self._display_shape(self.BLUESQUARE, self.left_canvas)
+                self._display_shape(self.YELLOWSQUARE, self.right_canvas)
+        else:
+            if config.YELLOW_POS == 'left':
                 self._display_symbol("yellow_circle.gif", self.left_canvas)
                 self._display_symbol("blue_star.gif", self.right_canvas)
             else:

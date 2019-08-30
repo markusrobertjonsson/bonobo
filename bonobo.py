@@ -111,7 +111,7 @@ class Experiment():
         # widths. This is to get only one screen (the screen where the window is launched)
         t = tk.Tk()  # Create a temporary window
         # t.attributes("-alpha", 00)  # Set max transparency (min opacity)
-        t.attributes('-zoomed', True)  # Maximize window
+        t.attributes('-fullscreen', True)  # Maximize window
         t.update()
         screen_width = t.winfo_width()
         screen_height = t.winfo_height()
@@ -130,7 +130,7 @@ class Experiment():
 
         self.canvas_width = h
 
-        # self.root.attributes('-zoomed', True)  # Maximize window
+        # self.root.attributes('-fullscreen', True)  # Maximize window
 
         self.is_fullscreen = False
         self.root.bind("<F11>", self.toggle_fullscreen)
@@ -674,8 +674,6 @@ class StimulusWindow():
         # h = H / 3
 
         # self.canvas_width = h
-
-        # # self.root.attributes('-zoomed', True)  # Maximize window
 
         # self.is_fullscreen = False
         # self.root.bind("<F11>", self.toggle_fullscreen)

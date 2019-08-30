@@ -1,11 +1,15 @@
 # These names are used in the name of the result file.
 MATCHING_TO_SAMPLE_SAMPLE = "MTS_SA"
 MATCHING_TO_SAMPLE_SYMBOLS = "MTS_SY"
+MATCHING_TO_SAMPLE_SYMBOLS_STARWHITE = "MTS_WY"
+MATCHING_TO_SAMPLE_SYMBOLS_BOTHWHITE = "MTS_WW"
+SINGLE_STIMULUS_DISCRIMINATION = "SSD"
 COMBINATION1 = "Combination1"
 
 # The experiment to run. Remove the "#" before the one to run.
 # EXPERIMENT = MATCHING_TO_SAMPLE_SAMPLE
 # EXPERIMENT = MATCHING_TO_SAMPLE_SYMBOLS
+# EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION
 EXPERIMENT = COMBINATION1
 
 # The subject exposed to the experiment. Used in the name of the result file and
@@ -68,6 +72,10 @@ RIGHT_OPTION = 'vertical_button.gif'
 # height
 SCREEN2_STIMULUS_WIDTH = 0.5
 
+# The width of the (square) sample (and the response buttons in MTS_SA and
+# SINGLE_STIMULUS_DISCRIMINATION)
+SYMBOL_WIDTH = 0.75
+
 
 ###############################
 # Matching to sample settings #
@@ -76,23 +84,21 @@ SCREEN2_STIMULUS_WIDTH = 0.5
 # Whether or not the yellow response should be to the 'left' or to the 'right'
 YELLOW_POS = 'right'
 
-# The width of the (square) sample (and the response buttons in MTS_SA)
-SYMBOL_WIDTH_MTS = 0.75
-
 # The time (in milliseconds) that the symbol is displayed by itself in MTS
 # before the options appear
 SYMBOL_SHOW_TIME_MTS = 1000
 
 
-#########################################
-# Simultaneous presentation and overlap #
-#########################################
+################################
+# Single stimulus presentation #
+################################
 
-# The time (in milliseconds) that the stimulus is presented, before the response buttons appear
-STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS = 2000
+# The time (in milliseconds) that the stimulus is presented
+STIMULUS_TIME = 2000
 
-# The time (in ms) that both stimulus and response buttons are diaplyed together
-OVERLAP_TIME = 250
+# The time (in ms) of delay between the stimulus disappears until the response buttons appear
+# Note: Only used when EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION, not in COMBINATION1
+DELAY = 0
 
 
 #################################

@@ -418,7 +418,7 @@ class Experiment():
         Return the file name of the result file.
         """
         if self.is_combination:
-            return Combination1.result_filename()
+            return Combination2.result_filename()
         else:
             experiment = self.experiment_abbreviation()
             subject = config.SUBJECT_TAG.lower()
@@ -1102,7 +1102,7 @@ class SubExperiment8(SingleStimulusDiscrimination):
             super().get_ready_to_start_trial()
 
 
-class Combination1():
+class Combination2():
     def __init__(self, gui):
         self.gui = gui
         filename = self.result_filename()
@@ -1131,13 +1131,13 @@ class Combination1():
 
     @staticmethod
     def result_filename():
-        experiment = Combination1.experiment_abbreviation()
+        experiment = Combination2.experiment_abbreviation()
         subject = config.SUBJECT_TAG.lower()
         return subject + "_" + experiment + ".csv"
 
     @staticmethod
     def experiment_abbreviation():
-        return "Combination1"
+        return "Combination2"
 
 
 class ResultFile():
@@ -1264,8 +1264,8 @@ def timestamp():
 if __name__ == '__main__':
     gui = Gui(use_screen2=True)
     e = None
-    if config.EXPERIMENT == config.COMBINATION1:
-        e = Combination1(gui)
+    if config.EXPERIMENT == config.COMBINATION2:
+        e = Combination2(gui)
     elif config.EXPERIMENT == config.MATCHING_TO_SAMPLE_SAMPLE:
         e = MatchingToSample(gui, is_combination=False, responses_are_samples=True)
     elif config.EXPERIMENT == config.MATCHING_TO_SAMPLE_SYMBOLS:

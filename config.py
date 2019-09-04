@@ -23,7 +23,7 @@ SUBJECT_TAG = "johan"
 # General settings #
 ####################
 
-# Set to False or True
+# Initial visibility of mouse pointer (False/True). Can be toggled with <F10>.
 HIDE_MOUSE_POINTER = False
 
 # The number of trials before the start screen appears automatically

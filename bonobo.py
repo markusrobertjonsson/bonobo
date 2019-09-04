@@ -106,6 +106,9 @@ class Gui():
         self.root.bind("<F11>", self.toggle_fullscreen)
         self.root.bind("<Escape>", self.end_fullscreen)
 
+        self.is_pointer_visible = True
+        self.root.bind("<F10>", self.toggle_pointer_visibility)
+
         # TOP
         self.top_frame = tk.Frame(self.root, width=W, height=h, **frame_options)
 
@@ -187,7 +190,8 @@ class Gui():
 
         if config.HIDE_MOUSE_POINTER:
             # Hide mouse pointer
-            self.root.config(cursor="none")
+            self.toggle_pointer_visibility()
+            # self.root.config(cursor="none")
 
         self.root.title("Main Window")
         self.root.protocol("WM_DELETE_WINDOW", self.delete_window)
@@ -220,6 +224,14 @@ class Gui():
         self.is_fullscreen = not self.is_fullscreen  # Just toggling the boolean
         self.root.attributes("-fullscreen", self.is_fullscreen)
         return "break"
+
+    def toggle_pointer_visibility(self, event=None):
+        if self.is_pointer_visible:
+            # Hide mouse pointer
+            self.root.config(cursor='none')
+        else:
+            self.root.config(cursor='')
+        self.is_pointer_visible = not self.is_pointer_visible
 
     def end_fullscreen(self, event=None):
         self.is_fullscreen = False
@@ -564,6 +576,7 @@ class StimulusWindow():
         self.gui = gui
         self.root = tk.Toplevel(gui.root)
         self.is_fullscreen = False
+        self.is_pointer_visible = True
         self._make_widgets()
 
         self.set_background_color(BACKGROUND_COLOR)
@@ -574,6 +587,14 @@ class StimulusWindow():
         self.is_fullscreen = not self.is_fullscreen  # Just toggling the boolean
         self.root.attributes("-fullscreen", self.is_fullscreen)
         return "break"
+
+    def toggle_pointer_visibility(self, event=None):
+        if self.is_pointer_visible:
+            # Hide mouse pointer
+            self.root.config(cursor='none')
+        else:
+            self.root.config(cursor='')
+        self.is_pointer_visible = not self.is_pointer_visible
 
     def end_fullscreen(self, event=None):
         self.is_fullscreen = False
@@ -616,6 +637,8 @@ class StimulusWindow():
         self.root.bind("<F11>", self.toggle_fullscreen)
         self.root.bind("<Escape>", self.end_fullscreen)
 
+        self.root.bind("<F10>", self.toggle_pointer_visibility)
+
         H = self.root.winfo_screenheight() * TOL
         h = H * config.SCREEN2_STIMULUS_WIDTH
         self.bottom_frame = tk.Frame(self.root, width=h, height=h, **frame_options)
@@ -628,7 +651,7 @@ class StimulusWindow():
 
         if config.HIDE_MOUSE_POINTER:
             # Hide mouse pointer
-            self.root.config(cursor="none")
+            self.toggle_pointer_visibility()
 
         self.root.title("Stimulus Window")
         self.root.protocol("WM_DELETE_WINDOW", self.delete_window)

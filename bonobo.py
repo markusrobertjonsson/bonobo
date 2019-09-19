@@ -279,8 +279,8 @@ class Gui():
                                           outline='', width=0)
         self.next_displayed = True
 
-    def display_stimulus(self, stimulus, shape_scale):
-        _display_shape(stimulus, self.top_mid_canvas, shape_scale)
+    def display_stimulus(self, stimulus, shape_scale, fraction=1):
+        _display_shape(stimulus, self.top_mid_canvas, shape_scale, fraction)
         self.stimulus_displayed = True
 
     def _display_image(self, symbol, canvas):
@@ -662,13 +662,17 @@ class StimulusWindow():
 
 class MatchingToSample(Experiment):
     def __init__(self, gui, is_combination=False, responses_are_samples=False,
-                 use_screen1=True, white_circle=False, white_star=False):
+                 use_screen1=True, stimulus_fraction_screen1=1, white_circle=False,
+                 white_star=False):
         # If true, the response buttons are the same as the samples
         # If false, the response buttons are the symbols in self.display_options
         self.responses_are_samples = responses_are_samples
 
         # Display samples on screen 1
         self.use_screen1 = use_screen1
+
+        # The fraction of the stimulus to display on screen 1
+        self.stimulus_fraction_screen1 = stimulus_fraction_screen1
 
         # If true, use white circle instead of the same color as the sample
         self.white_circle = white_circle
@@ -762,7 +766,8 @@ class MatchingToSample(Experiment):
         if len(self.sample_pot) == 0:
             self._create_new_samples()
         if self.use_screen1:
-            self.gui.display_stimulus(self.sample, shape_scale=config.SYMBOL_WIDTH)
+            self.gui.display_stimulus(self.sample, shape_scale=config.SYMBOL_WIDTH,
+                                      fraction=self.stimulus_fraction_screen1)
         if self.gui.use_screen2:
             self.gui.stimulus_window.display_stimulus(self.sample, shape_scale=1)
         self.stimulus_displayed = True
@@ -1012,11 +1017,50 @@ class SequenceDiscriminationProbe(Experiment):
 # ---------------------------------------------------------------------------
 
 
-class SubExperiment3(MatchingToSample):
+class SubExperiment3a(MatchingToSample):
     def __init__(self, gui):
         super().__init__(gui, is_combination=True)
         self.gui = gui
-        self.sub_experiment_index = 3
+        self.sub_experiment_index = 31
+        self.stimulus_fraction_screen1 = 1
+
+        self.responses_are_samples = False
+        self.use_screen1 = True
+
+    def get_ready_to_start_trial(self):
+        if self.is_sub_experiment_done():
+            next_experiment = SubExperiment3b(self.gui)
+            next_experiment.finished_trial_cnt = self.finished_trial_cnt
+            next_experiment.get_ready_to_start_trial()
+        else:
+            super().get_ready_to_start_trial()
+
+
+class SubExperiment3b(MatchingToSample):
+    def __init__(self, gui):
+        super().__init__(gui, is_combination=True)
+        self.gui = gui
+        self.sub_experiment_index = 32
+        self.stimulus_fraction_screen1 = 0.5
+
+        self.responses_are_samples = False
+        self.use_screen1 = True
+
+    def get_ready_to_start_trial(self):
+        if self.is_sub_experiment_done():
+            next_experiment = SubExperiment3c(self.gui)
+            next_experiment.finished_trial_cnt = self.finished_trial_cnt
+            next_experiment.get_ready_to_start_trial()
+        else:
+            super().get_ready_to_start_trial()
+
+
+class SubExperiment3c(MatchingToSample):
+    def __init__(self, gui):
+        super().__init__(gui, is_combination=True)
+        self.gui = gui
+        self.sub_experiment_index = 33
+        self.stimulus_fraction_screen1 = 0.25
 
         self.responses_are_samples = False
         self.use_screen1 = True
@@ -1117,10 +1161,14 @@ class SubExperiment8(SingleStimulusDiscrimination):
         self.use_screen1 = False
         self.delay = 500
 
+        self.end_of_combination_sound_played = False
+
     def get_ready_to_start_trial(self):
         if self.is_sub_experiment_done():
             self.gui.display_pause_screen()
-            self.gui.root.after(5000, _play, 'end_of_combination.wav')
+            if not self.end_of_combination_sound_played:
+                self.gui.root.after(5000, _play, 'end_of_combination.wav')
+            self.end_of_combination_sound_played = True
         else:
             super().get_ready_to_start_trial()
 
@@ -1138,7 +1186,7 @@ class Combination2():
             sub_experiment_index = int(sub_experiment_index)
 
         if sub_experiment_index <= 3:
-            SubExperiment3(gui)
+            SubExperiment3a(gui)
         elif sub_experiment_index == 4:
             SubExperiment4(gui)
         elif sub_experiment_index == 5:
@@ -1221,10 +1269,13 @@ class ResultFile():
             return True
 
 
-def _display_shape(symbol, canvas, shape_scale):
+def _display_shape(symbol, canvas, shape_scale, square_fraction=1):
     w = canvas.winfo_width()
     L = w * shape_scale
-    square_args = [(w - L) / 2, (w - L) / 2, (w - L) / 2 + L, (w - L) / 2 + L]
+    if square_fraction < 1:
+        square_args = [(w - L) / 2, 0, (w - L) / 2 + L, L * square_fraction]
+    else:
+        square_args = [(w - L) / 2, (w - L) / 2, (w - L) / 2 + L, (w - L) / 2 + L]
     if symbol == 'bluesquare':
         canvas.create_rectangle(*square_args, fill='blue', outline="", tags="shape")
     elif symbol == 'yellowsquare':

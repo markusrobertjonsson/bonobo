@@ -1,18 +1,34 @@
 # These names are used in the name of the result file.
-MATCHING_TO_SAMPLE_SAMPLE = "MTS_SA"
-MATCHING_TO_SAMPLE_SYMBOLS = "MTS_SY"
-MATCHING_TO_SAMPLE_SYMBOLS_STARWHITE = "MTS_WY"
-MATCHING_TO_SAMPLE_SYMBOLS_BOTHWHITE = "MTS_WW"
-SINGLE_STIMULUS_DISCRIMINATION = "SSD"
+EXP1a = "11"
+EXP1b = "12"
+EXP2 = "2"
+EXP3a = "31"
+EXP3b = "32"
+EXP3c = "33"
+EXP4 = "4"
+EXP5 = "5"
+EXP6 = "6"
+EXP7 = "7"
+EXP8 = "8"
+COMBINATION1 = "Combination1"
 COMBINATION2 = "Combination2"
+SEQUENCE_DISCRIMINATION_PROBE = "SequenceDiscriminationProbe"
 
 # The experiment to run. Remove the "#" before the one to run.
-# EXPERIMENT = MATCHING_TO_SAMPLE_SAMPLE
-# EXPERIMENT = MATCHING_TO_SAMPLE_SYMBOLS
-# EXPERIMENT = MATCHING_TO_SAMPLE_SYMBOLS_STARWHITE
-# EXPERIMENT = MATCHING_TO_SAMPLE_SYMBOLS_BOTHWHITE
-# EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION
-EXPERIMENT = COMBINATION2
+# EXPERIMENT = EXP1a
+# EXPERIMENT = EXP1b
+# EXPERIMENT = EXP2
+# EXPERIMENT = EXP3a
+# EXPERIMENT = EXP3b
+# EXPERIMENT = EXP3c
+# EXPERIMENT = EXP4
+# EXPERIMENT = EXP5
+# EXPERIMENT = EXP6
+# EXPERIMENT = EXP7
+# EXPERIMENT = EXP8
+# EXPERIMENT = COMBINATION1
+# EXPERIMENT = COMBINATION2
+EXPERIMENT = SEQUENCE_DISCRIMINATION_PROBE
 
 # The subject exposed to the experiment. Used in the name of the result file and
 # as the "subject" column in the result file
@@ -78,29 +94,30 @@ SCREEN2_STIMULUS_WIDTH = 0.5
 # SINGLE_STIMULUS_DISCRIMINATION)
 SYMBOL_WIDTH = 0.75
 
+# Whether or not the yellow response should be to the 'left' or to the 'right'
+YELLOW_POS = 'right'
+
 
 ###############################
 # Matching to sample settings #
 ###############################
-
-# Whether or not the yellow response should be to the 'left' or to the 'right'
-YELLOW_POS = 'right'
 
 # The time (in milliseconds) that the symbol is displayed by itself in MTS
 # before the options appear
 SYMBOL_SHOW_TIME_MTS = 1000
 
 
-################################
-# Single stimulus presentation #
-################################
+##################################
+# Single stimulus discrimination #
+##################################
 
 # The time (in milliseconds) that the stimulus is presented
 STIMULUS_TIME = 2000
 
 # The time (in ms) of delay between the stimulus disappears until the response buttons appear
-# Note: Only used when EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION, not in COMBINATION1
-DELAY = 0
+# Note: Only used when EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION or
+# SEQUENCE_DISCRIMINATION_PROBE, not in COMBINATION1
+DELAY = 500
 
 
 #################################
@@ -119,5 +136,8 @@ SHORT_A_TIME = 1000
 # The time to display B when aB or AB is displayed
 B_TIME = 2000
 
-# The inter-stimulus time
+# The inter-stimulus time for probes
 INTER_STIMULUS_TIME = 300
+
+# The time (in milliseconds) that the stimulus is presented, before the response buttons appear
+STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS = 2000

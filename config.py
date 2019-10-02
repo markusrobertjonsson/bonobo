@@ -107,9 +107,9 @@ YELLOW_POS = 'right'
 SYMBOL_SHOW_TIME_MTS = 1000
 
 
-##################################
-# Single stimulus discrimination #
-##################################
+####################################################################
+# Single stimulus discrimination and Sequence discrimination probe #
+####################################################################
 
 # The time (in milliseconds) that the stimulus is presented
 STIMULUS_TIME = 2000
@@ -138,6 +138,3 @@ B_TIME = 2000
 
 # The inter-stimulus time for probes
 INTER_STIMULUS_TIME = 300
-
-# The time (in milliseconds) that the stimulus is presented, before the response buttons appear
-STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS = 2000

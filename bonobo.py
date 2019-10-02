@@ -957,9 +957,11 @@ class SequenceDiscriminationProbe(Experiment):
 
         self.is_seq = False
         if self.stimulus in (self.STIMULUS_A, self.STIMULUS_B):
-            time_to_options = config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS
+            time_to_options = config.STIMULUS_TIME + config.DELAY
             _display_shape(self.stimulus, self.gui.stimulus_window.bottom_canvas,
                            shape_scale=1)  # The canvas itself has the correct size
+            job1 = self.gui.root.after(config.STIMULUS_TIME, self.gui.clear)
+            self.current_after_jobs = [job1]
             self.stimulus_displayed = True
 
         else:
@@ -1017,11 +1019,13 @@ class SequenceDiscriminationProbe(Experiment):
         self.gui.options_displayed = False
 
     def get_file_data(self):
-        return [("STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS", config.STIMULUS_TIME_BEFORE_RESPONSE_BUTTONS),
+        return [("STIMULUS_TIME", config.STIMULUS_TIME),
                 ("LONG_A_TIME", config.LONG_A_TIME),
                 ("SHORT_A_TIME", config.SHORT_A_TIME),
                 ("B_TIME", config.B_TIME),
-                ("INTER_STIMULUS_TIME", config.INTER_STIMULUS_TIME)]
+                ("DELAY", config.DELAY),
+                ("INTER_STIMULUS_TIME", config.INTER_STIMULUS_TIME),
+                ("PROBE_TRIAL_INTERVAL", config.PROBE_TRIAL_INTERVAL)]
 
     def get_stimulus_acronym(self):
         return self.stimulus

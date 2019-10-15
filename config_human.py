@@ -78,7 +78,7 @@ SDP = {
     "SINGLE_STIMULUS_TIME": 1500,
 
     # Every n:th trial is a probe trial where n = PROBE_TRIAL_INTERVAL
-    "PROBE_TRIAL_INTERVAL": 5,
+    "PROBE_TRIAL_INTERVAL": 10,
 
     # The time to display A when AB is displayed
     "LONG_A_TIME": 4000,

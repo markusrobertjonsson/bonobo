@@ -441,9 +441,6 @@ class Experiment():
         pass
         # assert(False)  # Must be overridden
 
-    # def is_sub_experiment_done(self):
-    #     return False
-
     def is_sub_experiment_done(self):
         return (self.success_frequency >= 0.8)
 
@@ -467,13 +464,13 @@ class Experiment():
         assert(False)  # Must be overridden
 
     def update_success_frequency(self, is_correct):
-        if is_correct is None:  # For example for probe trials
+        if is_correct is None:  # For probe trials and practice trials
             return
         self.success_list.append(int(is_correct))
-        # if len(self.success_list) > 3:  # XXX
+        # if len(self.success_list) > 5:  # XXX
         if len(self.success_list) > 20:
             self.success_list.pop(0)
-        # if len(self.success_list) >= 3:  # XXX
+        # if len(self.success_list) >= 5:  # XXX
         if len(self.success_list) >= 20:
             self.success_frequency = round(sum(self.success_list) / len(self.success_list), 3)
 
@@ -681,6 +678,8 @@ class SingleStimulusDiscriminationMarch7(Experiment):
             self.correct_choice()
         else:
             self.incorrect_choice()
+        if self.is_practice_trial:
+            self.is_correct = None  # To avoid updating in self.update_success_frequency
         self.gui.left_option_displayed = False
         self.gui.right_option_displayed = False
         self.write_to_file(event)
@@ -919,9 +918,9 @@ class SequenceDiscriminationProbe(Experiment):
         self.STIMULUS_A = 'yellowsquare'
         self.STIMULUS_B = 'bluesquare'
 
-        self.STIMULUS_POT = [self.STIMULUS_A, self.STIMULUS_B] * 5
+        self.STIMULUS_POT = [self.STIMULUS_A, self.STIMULUS_B] * 6
         self.PROBE_POT = [SequenceDiscriminationProbe.SHORT_AB,
-                          SequenceDiscriminationProbe.LONG_AB] * 5
+                          SequenceDiscriminationProbe.LONG_AB] * 4
         self._create_new_stimuli()
         self._create_new_probes()
 
@@ -1090,6 +1089,7 @@ class SubExperiment3(SingleStimulusDiscrimination):
         if self.is_sub_experiment_done():
             next_experiment = SubExperiment4(self.gui)
             next_experiment.finished_trial_cnt = self.finished_trial_cnt
+            next_experiment.finished_trial_cnt0 = self.finished_trial_cnt
             next_experiment.get_ready_to_start_trial()
         else:
             super().get_ready_to_start_trial()
@@ -1111,6 +1111,9 @@ class SubExperiment4(SequenceDiscriminationProbe):
             self.gui.text_frame.place(relx=.5, rely=.5, anchor="center")
         else:
             super().get_ready_to_start_trial()
+
+    def is_sub_experiment_done(self):
+        return (self.finished_trial_cnt - self.finished_trial_cnt0) >= 80
 
     def result_filename(self):
         return CombinationHuman.result_filename()

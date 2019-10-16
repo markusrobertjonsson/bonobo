@@ -63,7 +63,7 @@ HIDE_MOUSE_POINTER = False
 START_SCREEN_COLOR_RGB = (255, 192, 203)  # Pink
 
 # The time (in milliseconds) for the black screen after incorrect answer
-BLACKOUT_TIME = 5000
+BLACKOUT_TIME = 3000
 
 # The delay (in milliseconds) after correct answer, before the next stimulus is displayed
 DELAY_AFTER_REWARD = 1000

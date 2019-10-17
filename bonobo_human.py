@@ -70,6 +70,9 @@ class Gui():
 
         self.canvas_width = self.h
 
+        # To make toggle fullscreen work only once
+        self.toggled_fullscreen = False
+
         self._make_images()
         self._make_widgets()
 
@@ -117,10 +120,10 @@ class Gui():
 
         self.is_fullscreen = False
         self.root.bind("<F11>", self.toggle_fullscreen)
-        self.root.bind("<Escape>", self.end_fullscreen)
+        # self.root.bind("<Escape>", self.end_fullscreen)
 
         self.is_pointer_visible = True
-        self.root.bind("<F10>", self.toggle_pointer_visibility)
+        # self.root.bind("<F10>", self.toggle_pointer_visibility)
 
         # TOP
         self.top_frame = tk.Frame(self.root, width=W, height=h, **frame_options)
@@ -254,9 +257,11 @@ class Gui():
         self.top_right_canvas.configure(background=color)
 
     def toggle_fullscreen(self, event=None):
-        self.is_fullscreen = not self.is_fullscreen  # Just toggling the boolean
-        self.root.attributes("-fullscreen", self.is_fullscreen)
-        return "break"
+        if not self.toggled_fullscreen:
+            self.is_fullscreen = not self.is_fullscreen  # Just toggling the boolean
+            self.root.attributes("-fullscreen", self.is_fullscreen)
+            self.toggled_fullscreen = True
+            return "break"
 
     def toggle_pointer_visibility(self, event=None):
         if self.is_pointer_visible:
@@ -266,10 +271,10 @@ class Gui():
             self.root.config(cursor='')
         self.is_pointer_visible = not self.is_pointer_visible
 
-    def end_fullscreen(self, event=None):
-        self.is_fullscreen = False
-        self.root.attributes("-fullscreen", False)
-        return "break"
+    # def end_fullscreen(self, event=None):
+    #     self.is_fullscreen = False
+    #     self.root.attributes("-fullscreen", False)
+    #     return "break"
 
     def _set_entire_screen_color(self, color):
         self.clear_canvases()
@@ -381,6 +386,9 @@ class Experiment():
 
         self.gui.bottom_canvas.bind("<Button-1>", self.next_clicked)
         self.gui.top_mid_canvas.bind("<Button-1>", self.stimulus_clicked)
+
+        # To make space pressed work only once
+        self.space_is_pressed = False
         self.gui.root.bind("<space>", self.space_pressed)
 
         self.sub_experiment_index = None
@@ -411,14 +419,16 @@ class Experiment():
             return "break"  # To detect "undesired clicks" outside any button
 
     def space_pressed(self, event=None):
-        if self.gui.pause_screen_displayed:
-            self.get_ready_to_start_trial()
-            self.gui.pause_screen_displayed = False
-        else:
-            self.gui.display_pause_screen()
-            self.cancel_all_after_jobs()
-        self.gui.text_frame.place_forget()
-        _play('space_bar_sound.wav')
+        if not self.space_is_pressed:
+            if self.gui.pause_screen_displayed:
+                self.get_ready_to_start_trial()
+                self.gui.pause_screen_displayed = False
+            else:
+                self.gui.display_pause_screen()
+                self.cancel_all_after_jobs()
+            self.gui.text_frame.place_forget()
+            _play('space_bar_sound.wav')
+            self.space_is_pressed = True
 
     def get_ready_to_start_trial(self):
         self.gui.blackout_displayed = False
@@ -467,11 +477,11 @@ class Experiment():
         if is_correct is None:  # For probe trials and practice trials
             return
         self.success_list.append(int(is_correct))
-        # if len(self.success_list) > 5:  # XXX
-        if len(self.success_list) > 20:
+        if len(self.success_list) > 5:  # XXX
+        # if len(self.success_list) > 20:
             self.success_list.pop(0)
-        # if len(self.success_list) >= 5:  # XXX
-        if len(self.success_list) >= 20:
+        if len(self.success_list) >= 5:  # XXX
+        # if len(self.success_list) >= 20:
             self.success_frequency = round(sum(self.success_list) / len(self.success_list), 3)
 
     def correct_choice(self):
@@ -1019,7 +1029,7 @@ class SequenceDiscriminationProbe(Experiment):
     def _option_chosen_after_seq(self, event):
         self.is_correct = None
         self.write_to_file(event=event)
-        self.gui.options_displayed = False
+        # self.gui.options_displayed = False
         self.gui.clear()
         self.get_ready_to_start_trial()
 
@@ -1102,6 +1112,7 @@ class SubExperiment4(SequenceDiscriminationProbe):
     def __init__(self, gui):
         super().__init__(gui)
         self.sub_experiment_index = 4
+        self.finished_trial_cnt0 = 0
 
     def get_ready_to_start_trial(self):
         if self.is_sub_experiment_done():
@@ -1124,12 +1135,12 @@ class CombinationHuman():
         self.gui = gui
         filename = self.result_filename()
         self.result_file = ResultFile(filename)
-        SubExperiment1(gui)
+        SubExperiment4(gui)
 
     @staticmethod
     def result_filename():
         d = datestamp()
-        t = timestamp()
+        t = timestamp(include_milliseconds=False, separator='_')
         return config.SUBJECT_TAG + "_" + d + "_" + t + ".csv"
 
 
@@ -1251,7 +1262,7 @@ def datestamp():
     return year + "-" + month + "-" + day
 
 
-def timestamp():
+def timestamp(include_milliseconds=True, separator=':'):
     unow = datetime.now()
     hour = str(unow.hour)
     if unow.hour < 10:
@@ -1264,7 +1275,10 @@ def timestamp():
         second = "0" + second
     microsecond = unow.microsecond
     millisecond = str(round(microsecond / 1000))
-    return hour + ":" + minute + ":" + second + ":" + millisecond
+    if include_milliseconds:
+        return hour + separator + minute + separator + second + separator + millisecond
+    else:
+        return hour + separator + minute + separator + second
 
 
 if __name__ == '__main__':

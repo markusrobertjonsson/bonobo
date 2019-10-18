@@ -477,11 +477,11 @@ class Experiment():
         if is_correct is None:  # For probe trials and practice trials
             return
         self.success_list.append(int(is_correct))
-        if len(self.success_list) > 5:  # XXX
-        # if len(self.success_list) > 20:
+        # if len(self.success_list) > 5:  # XXX
+        if len(self.success_list) > 20:
             self.success_list.pop(0)
-        if len(self.success_list) >= 5:  # XXX
-        # if len(self.success_list) >= 20:
+        # if len(self.success_list) >= 5:  # XXX
+        if len(self.success_list) >= 20:
             self.success_frequency = round(sum(self.success_list) / len(self.success_list), 3)
 
     def correct_choice(self):
@@ -1135,7 +1135,7 @@ class CombinationHuman():
         self.gui = gui
         filename = self.result_filename()
         self.result_file = ResultFile(filename)
-        SubExperiment4(gui)
+        SubExperiment1(gui)
 
     @staticmethod
     def result_filename():

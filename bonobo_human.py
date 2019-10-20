@@ -196,19 +196,23 @@ class Gui():
         self.bottom_frame.pack(expand=True, side=tk.BOTTOM)
 
         # Text
-        self.text_frame = tk.Frame(self.root, width=W, height=H, **frame_options)
-        # self.text_canvas = tk.Canvas(self.text_frame, width=W, height=H, **canvas_options)
-        # self.text_frame.pack_propagate(False)
-
-        # self.text_label = tk.Label(self.top_frame, text=config.INSTRUCTION_TEXT, justify=tk.LEFT)
+        self.text_frame = tk.Frame(self.root, width=W, height=H, **frame_options, background=START_SCREEN_COLOR)
         self.text_variable = tk.StringVar()
         self.text_variable.set(config.INSTRUCTION_TEXT)
         self.text_label = tk.Label(self.text_frame, textvariable=self.text_variable,
                                    justify=tk.LEFT, font=config.TEXTS_FONT,
                                    background=START_SCREEN_COLOR)
-        self.text_label.pack()
+        self.id_label = tk.Label(self.text_frame,
+                                 text="Enter the subject id you have been assigned:",
+                                 background=START_SCREEN_COLOR, font=config.TEXTS_FONT)
+        vcmd = (self.root.register(self.id_input_listener))
+        self.id_input = tk.Entry(self.text_frame, font=config.TEXTS_FONT, validate='all',
+                                 validatecommand=(vcmd, '%P'))
+        self.id_button = tk.Button(self.text_frame, text="OK", command=self.id_button_clicked)
+        self.id_label.pack()
+        self.id_input.pack(fill=tk.X)
+        self.id_button.pack()
         self.text_frame.place(relx=.5, rely=.5, anchor="center")
-        # self.text_frame.pack(expand=True, side=tk.TOP)
 
         self.root.update()
         w = self.bottom_canvas.winfo_width()
@@ -235,6 +239,17 @@ class Gui():
 
         self.root.title("Main Window")
         self.root.protocol("WM_DELETE_WINDOW", self.delete_window)
+
+    def id_input_listener(self, P):
+        return (P.isdigit() or P == "")  # P is empty string for delete and backspace
+
+    def id_button_clicked(self):
+        self.subject_id = self.id_input.get()
+        self.id_label.pack_forget()
+        self.id_input.pack_forget()
+        self.id_button.pack_forget()
+        self.text_label.pack()
+        return "break"
 
     def set_background_color(self, color):
         # Root
@@ -392,8 +407,7 @@ class Experiment():
         self.gui.root.bind("<space>", self.space_pressed)
 
         self.sub_experiment_index = None
-        filename = self.result_filename()
-        self.result_file = ResultFile(filename)
+        self.result_file = None
         self.started_trial_cnt = 0
         self.finished_trial_cnt = 0
         self.clicked_option = None
@@ -427,7 +441,7 @@ class Experiment():
                 self.gui.display_pause_screen()
                 self.cancel_all_after_jobs()
             self.gui.text_frame.place_forget()
-            _play('space_bar_sound.wav')
+            # _play('space_bar_sound.wav')
             self.space_is_pressed = True
 
     def get_ready_to_start_trial(self):
@@ -512,7 +526,14 @@ class Experiment():
                                       background=BLACKOUT_COLOR)
 
     def undesired_click(self, event=None):
+        if self.result_file is None:  # Undesired clicks before first real click are omitted
+            return
         self.write_to_file(event=event, is_undesired=True)
+
+    def result_filename(self):
+        d = datestamp()
+        t = timestamp(include_milliseconds=False, separator='_')
+        return f"subject{self.gui.subject_id}_exp{self.sub_experiment_index}_{d}_{t}.csv"
 
     def write_to_file(self, event, is_undesired=False):
         if not is_undesired:
@@ -536,7 +557,7 @@ class Experiment():
 
         file_data.extend([("sub_experiment_index", self.sub_experiment_index)])
 
-        file_data.extend([("subject", config.SUBJECT_TAG),
+        file_data.extend([("subject", self.gui.subject_id),
                           ("date", datestamp()),
                           ("timestamp", timestamp()),
                           ("trial", self.started_trial_cnt),
@@ -589,6 +610,11 @@ class Experiment():
                 value = "None"
             headers.append(header)
             values.append(value)
+
+        if self.result_file is None:
+            filename = self.result_filename()
+            self.result_file = ResultFile(filename)
+
         self.result_file.write(headers, values)
 
     def get_file_data(self):
@@ -1065,9 +1091,6 @@ class SubExperiment1(SingleStimulusDiscriminationMarch7):
         else:
             super().get_ready_to_start_trial()
 
-    def result_filename(self):
-        return CombinationHuman.result_filename()
-
 
 class SubExperiment2(SequenceDiscriminationFullscreen):
     def __init__(self, gui):
@@ -1086,9 +1109,6 @@ class SubExperiment2(SequenceDiscriminationFullscreen):
         else:
             super().get_ready_to_start_trial()
 
-    def result_filename(self):
-        return CombinationHuman.result_filename()
-
 
 class SubExperiment3(SingleStimulusDiscrimination):
     def __init__(self, gui):
@@ -1103,9 +1123,6 @@ class SubExperiment3(SingleStimulusDiscrimination):
             next_experiment.get_ready_to_start_trial()
         else:
             super().get_ready_to_start_trial()
-
-    def result_filename(self):
-        return CombinationHuman.result_filename()
 
 
 class SubExperiment4(SequenceDiscriminationProbe):
@@ -1126,22 +1143,11 @@ class SubExperiment4(SequenceDiscriminationProbe):
     def is_sub_experiment_done(self):
         return (self.finished_trial_cnt - self.finished_trial_cnt0) >= 80
 
-    def result_filename(self):
-        return CombinationHuman.result_filename()
-
 
 class CombinationHuman():
     def __init__(self, gui):
         self.gui = gui
-        filename = self.result_filename()
-        self.result_file = ResultFile(filename)
         SubExperiment1(gui)
-
-    @staticmethod
-    def result_filename():
-        d = datestamp()
-        t = timestamp(include_milliseconds=False, separator='_')
-        return config.SUBJECT_TAG + "_" + d + "_" + t + ".csv"
 
 
 class ResultFile():

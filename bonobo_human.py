@@ -86,6 +86,7 @@ class Gui():
         self.snack_time = False
 
         self.last_clicked_button_canvas = "None"
+        self.subject_id = None
 
     def _make_images(self):
         self.image_files = {'blue_star.gif': PhotoImage(file='blue_star.gif'),
@@ -208,7 +209,8 @@ class Gui():
         vcmd = (self.root.register(self.id_input_listener))
         self.id_input = tk.Entry(self.text_frame, font=config.TEXTS_FONT, validate='all',
                                  validatecommand=(vcmd, '%P'))
-        self.id_button = tk.Button(self.text_frame, text="OK", command=self.id_button_clicked)
+        self.id_button = tk.Button(self.text_frame, text="OK", command=self.id_button_clicked,
+                                   state='disabled')
         self.id_label.pack()
         self.id_input.pack(fill=tk.X)
         self.id_button.pack()
@@ -241,10 +243,30 @@ class Gui():
         self.root.protocol("WM_DELETE_WINDOW", self.delete_window)
 
     def id_input_listener(self, P):
-        return (P.isdigit() or P == "")  # P is empty string for delete and backspace
+        before = self.id_input.get()
+        after = P
+
+        if after == "":
+            button_enable = False
+        elif after.isdigit():
+            button_enable = True
+        elif before.isdigit():
+            button_enable = True
+        else:
+            button_enable = False
+        if button_enable:
+            self.id_button["state"] = "normal"
+        else:
+            self.id_button["state"] = "disabled"
+
+        if len(after) > 4:  # Allow up to four digits
+            allow = False
+        else:
+            allow = (after.isdigit() or after == "")  # P is empty string for delete and backspace
+        return allow
 
     def id_button_clicked(self):
-        self.subject_id = self.id_input.get()
+        self.subject_id = int(self.id_input.get())
         self.id_label.pack_forget()
         self.id_input.pack_forget()
         self.id_button.pack_forget()
@@ -433,6 +455,8 @@ class Experiment():
             return "break"  # To detect "undesired clicks" outside any button
 
     def space_pressed(self, event=None):
+        if self.gui.subject_id is None:  # Ignore space before subject_id is entered
+            return
         if not self.space_is_pressed:
             if self.gui.pause_screen_displayed:
                 self.get_ready_to_start_trial()
@@ -759,11 +783,14 @@ class SequenceDiscriminationFullscreen(Experiment):
         # The inter-stimulus time
         self.INTER_STIMULUS_TIME = 300
 
-        # The color of stimulus A
-        self.COLOR_A = hex_format % (0, 0, 255)
-
-        # The color of stimulus B
-        self.COLOR_B = hex_format % (255, 255, 0)
+        YELLOW = hex_format % (255, 255, 0)
+        BLUE = hex_format % (0, 0, 255)
+        if (self.gui.subject_id % 2) == 0:
+            self.COLOR_A = BLUE
+            self.COLOR_B = YELLOW
+        else:
+            self.COLOR_A = YELLOW
+            self.COLOR_B = BLUE
 
         self.AA = (self.COLOR_A, self.COLOR_A)
         self.AB = (self.COLOR_A, self.COLOR_B)
@@ -874,10 +901,14 @@ class SingleStimulusDiscrimination(Experiment):
         # The last displayed stimulus
         self.stimulus = None
 
-        self.YELLOWSQUARE = 'yellowsquare'
-        self.BLUESQUARE = 'bluesquare'
+        if (self.gui.subject_id % 2) == 0:
+            self.A = 'yellowsquare'
+            self.B = 'bluesquare'
+        else:
+            self.A = 'bluesquare'
+            self.B = 'yellowsquare'
 
-        self.POT10 = [self.YELLOWSQUARE, self.BLUESQUARE] * 5
+        self.POT10 = [self.A, self.B] * 5
 
         self._create_new_stimuli()
 
@@ -889,7 +920,7 @@ class SingleStimulusDiscrimination(Experiment):
         # if config.YELLOW_POS == 'left':
         #     self.left_is_correct = (self.stimulus == self.YELLOWSQUARE)
         # else:
-        self.left_is_correct = (self.stimulus != self.YELLOWSQUARE)
+        self.left_is_correct = (self.stimulus != self.A)
         # if config.YELLOW_POS == 'left':
         #     self.gui._display_image("white_circle.gif", self.gui.left_canvas)
         #     self.gui._display_image("white_star.gif", self.gui.right_canvas)
@@ -951,8 +982,12 @@ class SequenceDiscriminationProbe(Experiment):
         self.stimulus = None
         self.stimulus_cnt = 0
 
-        self.STIMULUS_A = 'yellowsquare'
-        self.STIMULUS_B = 'bluesquare'
+        if (self.gui.subject_id % 2) == 0:
+            self.STIMULUS_A = 'yellowsquare'
+            self.STIMULUS_B = 'bluesquare'
+        else:
+            self.STIMULUS_A = 'bluesquare'
+            self.STIMULUS_B = 'yellowsquare'
 
         self.STIMULUS_POT = [self.STIMULUS_A, self.STIMULUS_B] * 6
         self.PROBE_POT = [SequenceDiscriminationProbe.SHORT_AB,

@@ -859,12 +859,12 @@ class SequenceDiscriminationFullscreen(Experiment):
     def _left_clicked(self, event=None):
         if self.gui.options_displayed:
             self.is_correct = self.is_AB
-            self._option_chosen(event)
+            return self._option_chosen(event)
 
     def _right_clicked(self, event=None):
         if self.gui.options_displayed:
             self.is_correct = not self.is_AB
-            self._option_chosen(event)
+            return self._option_chosen(event)
 
     def _option_chosen(self, event):
         if self.is_correct:
@@ -873,6 +873,7 @@ class SequenceDiscriminationFullscreen(Experiment):
             self.incorrect_choice()
         self.write_to_file(event)
         self.gui.options_displayed = False
+        return "break"
 
     def get_stimulus_acronym(self):
         if self.stimulus1 == self.COLOR_A and self.stimulus2 == self.COLOR_A:

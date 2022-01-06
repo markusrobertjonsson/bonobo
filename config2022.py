@@ -1,34 +1,8 @@
 # These names are used in the name of the result file.
-EXP1a = "11"
-EXP1b = "12"
-EXP2 = "2"
-EXP3a = "31"
-EXP3b = "32"
-EXP3c = "33"
-EXP4 = "4"
-EXP5 = "5"
-EXP6 = "6"
-EXP7 = "7"
-EXP8 = "8"
-COMBINATION1 = "Combination1"
-COMBINATION2 = "Combination2"
-SEQUENCE_DISCRIMINATION_PROBE = "SequenceDiscriminationProbe"
+DMTS_PROBE = "DMTS_PROBE"
 
 # The experiment to run. Remove the "#" before the one to run.
-# EXPERIMENT = EXP1a
-# EXPERIMENT = EXP1b
-# EXPERIMENT = EXP2
-# EXPERIMENT = EXP3a
-# EXPERIMENT = EXP3b
-# EXPERIMENT = EXP3c
-# EXPERIMENT = EXP4
-# EXPERIMENT = EXP5
-# EXPERIMENT = EXP6
-# EXPERIMENT = EXP7
-# EXPERIMENT = EXP8
-# EXPERIMENT = COMBINATION1
-# EXPERIMENT = COMBINATION2
-EXPERIMENT = SEQUENCE_DISCRIMINATION_PROBE
+EXPERIMENT = DMTS_PROBE
 
 # The subject exposed to the experiment. Used in the name of the result file and
 # as the "subject" column in the result file

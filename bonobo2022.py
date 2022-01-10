@@ -1,7 +1,7 @@
 import tkinter as tk
 import random
 import subprocess
-import config
+import config2022 as config
 import csv
 import time
 import os
@@ -29,14 +29,18 @@ BLACKOUT_COLOR = hex_format % config.BLACKOUT_COLOR_RGB
 COLOR_A = hex_format % config.COLOR_A_RGB
 COLOR_B = hex_format % config.COLOR_B_RGB
 
-frame_options = dict()  # For debugging frame positioning
-# frame_options = {'highlightbackground': 'blue',
-#                  'highlightcolor': 'blue',
-#                  'highlightthickness': 1,
-#                  'bd': 0}
+# frame_options = dict()  # For debugging frame positioning
+frame_options = {'highlightbackground': 'blue',
+                 'highlightcolor': 'blue',
+                 'highlightthickness': 1,
+                 'bd': 0}
+frame_options2 = {'highlightbackground': 'blue',
+                 'highlightcolor': 'blue',
+                 'highlightthickness': 5,
+                 'bd': 0}
 
-canvas_options = {'bd': 0, 'highlightthickness': 0}
-# canvas_options = {'bd': 1, 'highlightthickness': 1}
+# canvas_options = {'bd': 0, 'highlightthickness': 0}
+canvas_options = {'bd': 1, 'highlightthickness': 1}
 
 TOL = 0.99
 TIMETOL = 3  # Round delay times to nearest millisecond
@@ -47,7 +51,7 @@ class Gui():
         self.use_screen2 = use_screen2
         self._make_widgets()
         self._make_images()
-
+ 
         self.next_displayed = False
         self.stimulus_displayed = False
         self.options_displayed = False
@@ -77,13 +81,13 @@ class Gui():
                             'vertical_button.gif': PhotoImage(file='vertical_button.gif')}
         self.root.update()
         for key, image_file in self.image_files.items():
-            scaling_factor = ceil(image_file.width() / self.left_canvas.winfo_width())
+            scaling_factor = ceil(image_file.width() / self.canvas['11'].winfo_width())
             self.image_files[key] = image_file.subsample(scaling_factor)
 
     def _make_widgets(self):
 
         # For dual screen setup, self.root.winfo_screenwidth() returns the sum of the two screen
-        # widths. This is to get only one screen (the screen where the window is launched)
+        # widths. The below is to get only one screen (the screen where the window is launched)
         t = tk.Tk()  # Create a temporary window
         # t.attributes("-alpha", 00)  # Set max transparency (min opacity)
         t.attributes('-fullscreen', True)  # Maximize window
@@ -96,7 +100,8 @@ class Gui():
 
         W = self.screen_width * TOL
         H = self.screen_height * TOL
-        h = H / 3
+        h = H / 4
+        w = W / 3
 
         # print(f"self.root.winfo_screenwidth()={self.root.winfo_screenwidth()}")
         # print(f"self.root.winfo_screenheight()={self.root.winfo_screenheight()}")
@@ -110,69 +115,22 @@ class Gui():
         self.is_pointer_visible = True
         self.root.bind("<F10>", self.toggle_pointer_visibility)
 
-        # TOP
-        self.top_frame = tk.Frame(self.root, width=W, height=h, **frame_options)
-
-        self.top_left_canvas = tk.Canvas(self.top_frame, width=self.canvas_width,
-                                         height=self.canvas_width, **canvas_options)
-        self.top_mid_canvas = tk.Canvas(self.top_frame, width=self.canvas_width,
-                                        height=self.canvas_width, **canvas_options)
-        self.top_right_canvas = tk.Canvas(self.top_frame, width=self.canvas_width,
-                                          height=self.canvas_width, **canvas_options)
-        self.top_left_canvas.pack(side=tk.LEFT)
-        self.top_mid_canvas.place(relx=.5, rely=.5, anchor="center")
-        self.top_right_canvas.pack(side=tk.RIGHT)
-
-        self.top_frame.pack_propagate(False)
-        self.top_frame.pack(expand=True, side=tk.TOP)
-
-        # MIDDLE
-        space_width = h
-        self.middle_frame = tk.Frame(self.root, width=W, height=h, **frame_options)
-
-        self.middle_left_frame = tk.Frame(self.middle_frame, width=(W - space_width) / 2, height=h,
-                                          **frame_options)
-        self.middle_left_frame.pack_propagate(False)
-        self.middle_left_frame.pack(side=tk.LEFT)
-
-        self.middle_space_frame = tk.Frame(self.middle_frame, width=space_width, height=h,
-                                           **frame_options)
-        self.middle_space_frame.pack_propagate(False)
-        self.middle_space_frame.pack(side=tk.LEFT)
-        self.middle_right_frame = tk.Frame(self.middle_frame, width=(W - space_width) / 2,
-                                           height=h, **frame_options)
-        self.middle_right_frame.pack_propagate(False)
-        self.middle_right_frame.pack(side=tk.LEFT)
-
-        self.left_canvas = tk.Canvas(self.middle_left_frame, width=self.canvas_width,
-                                     height=self.canvas_width, **canvas_options)
-        self.left_canvas.pack(side=tk.RIGHT)
-
-        self.right_canvas = tk.Canvas(self.middle_right_frame, width=self.canvas_width,
-                                      height=self.canvas_width, **canvas_options)
-        self.right_canvas.pack(side=tk.LEFT)
-
-        self.middle_frame.pack_propagate(False)
-        self.middle_frame.pack(expand=True, side=tk.TOP)
-
-        # BOTTOM
-        self.bottom_canvas_width = h * config.NEXT_BUTTON_WIDTH
-        self.bottom_frame = tk.Frame(self.root, width=W, height=h, **frame_options)
-        self.bottom_canvas = tk.Canvas(self.bottom_frame, width=self.bottom_canvas_width,
-                                       height=self.bottom_canvas_width, **canvas_options)
-        self.bottom_left_canvas = tk.Canvas(self.bottom_frame, width=self.canvas_width,
-                                            height=self.canvas_width, **canvas_options)
-        self.bottom_right_canvas = tk.Canvas(self.bottom_frame, width=self.canvas_width,
-                                             height=self.canvas_width, **canvas_options)
-        self.bottom_left_canvas.pack(side=tk.LEFT)
-        self.bottom_right_canvas.pack(side=tk.RIGHT)
-        self.bottom_canvas.pack(expand=True)
-
-        self.bottom_frame.pack_propagate(False)
-        self.bottom_frame.pack(expand=True, side=tk.BOTTOM)
+        self.frame = dict()
+        self.canvas = dict()
+        for i in ['1', '2', '3', '4']:
+            self.frame[i] = tk.Frame(self.root, width=W, height=h, **frame_options)
+            self.frame[i].pack(side=tk.TOP, anchor=tk.N)
+            for j in ['1', '2', '3']:
+                self.frame[i + j] = tk.Frame(self.frame[i], width=w, height=h, **frame_options2)
+                self.frame[i + j].pack_propagate(False)
+                self.frame[i + j].pack(side=tk.LEFT)
+                self.canvas[i + j] = tk.Canvas(self.frame[i + j], width=h, height=h, **canvas_options)
+                self.canvas[i + j].place(relx=.5, rely=.5, anchor="center")
+                # self.canvas[i + j].pack(side=tk.BOTTOM)
+                # self.canvas[i + j].pack(anchor=tk.S)
 
         self.root.update()
-        w = self.bottom_canvas.winfo_width()
+        w = self.canvas['32'].winfo_width()
         pw = w * 0.1
         d1 = w / 2 - pw / 2
         d2 = w / 2 + pw / 2
@@ -192,7 +150,6 @@ class Gui():
         if config.HIDE_MOUSE_POINTER:
             # Hide mouse pointer
             self.toggle_pointer_visibility()
-            # self.root.config(cursor="none")
 
         self.root.title("Main Window")
         self.root.protocol("WM_DELETE_WINDOW", self.delete_window)
@@ -205,21 +162,11 @@ class Gui():
         # Root
         self.root.configure(background=color)
         # Frames
-        self.top_frame.configure(background=color)
-        self.middle_frame.configure(background=color)
-        self.middle_left_frame.configure(background=color)
-        self.middle_space_frame.configure(background=color)
-        self.middle_right_frame.configure(background=color)
-        self.bottom_frame.configure(background=color)
+        for frame in self.frame.values():            
+            frame.configure(background=color)
         # Canvases
-        self.left_canvas.configure(background=color)
-        self.right_canvas.configure(background=color)
-        self.bottom_canvas.configure(background=color)
-        self.bottom_left_canvas.configure(background=color)
-        self.bottom_right_canvas.configure(background=color)
-        self.top_left_canvas.configure(background=color)
-        self.top_mid_canvas.configure(background=color)
-        self.top_right_canvas.configure(background=color)
+        for canvas in self.canvas.values():
+            canvas.configure(background=color)
 
     def toggle_fullscreen(self, event=None):
         self.is_fullscreen = not self.is_fullscreen  # Just toggling the boolean
@@ -250,14 +197,8 @@ class Gui():
             self.stimulus_window.clear()
 
     def clear_canvases(self):
-        self.left_canvas.delete(tk.ALL)
-        self.right_canvas.delete(tk.ALL)
-        self.bottom_canvas.delete(tk.ALL)
-        self.top_left_canvas.delete(tk.ALL)
-        self.top_mid_canvas.delete(tk.ALL)
-        self.top_right_canvas.delete(tk.ALL)
-        self.bottom_left_canvas.delete(tk.ALL)
-        self.bottom_right_canvas.delete(tk.ALL)
+        for canvas in self.canvas.values():
+            canvas.delete(tk.ALL)
         self.next_displayed = False
         self.stimulus_displayed = False
         self.options_displayed = False
@@ -276,12 +217,12 @@ class Gui():
         self.display_next()
 
     def display_next(self):
-        self.bottom_canvas.create_polygon(*self.next_symbol_args, fill=NEXT_BUTTON_COLOR,
+        self.canvas['42'].create_polygon(*self.next_symbol_args, fill=NEXT_BUTTON_COLOR,
                                           outline='', width=0)
         self.next_displayed = True
 
     def display_stimulus(self, stimulus, shape_scale, fraction=1, force_mid=False):
-        _display_shape(stimulus, self.top_mid_canvas, shape_scale, fraction)
+        _display_shape(stimulus, self.canvas['12'], shape_scale, fraction)
         self.stimulus_displayed = True
 
     def _display_image(self, symbol, canvas):
@@ -334,14 +275,11 @@ class Gui():
 
 class Experiment():
     def __init__(self, gui, is_combination=False):
-
         self.gui = gui
 
         self.gui.root.bind("<Button-1>", self.undesired_click)
-        self.gui.left_canvas.bind("<Button-1>", self.left_clicked)
-        self.gui.right_canvas.bind("<Button-1>", self.right_clicked)
-        self.gui.bottom_canvas.bind("<Button-1>", self.next_clicked)
-        self.gui.top_mid_canvas.bind("<Button-1>", self.stimulus_clicked)
+        for key, canvas in self.gui.canvas.items():
+            canvas.bind("<Button-1>", lambda e=None, k=key: self.canvas_clicked(e, k))
         self.gui.root.bind("<space>", self.space_pressed)
         if gui.use_screen2:
             self.gui.stimulus_window.root.bind("<space>", self.space_pressed)
@@ -365,6 +303,12 @@ class Experiment():
 
         self.gui.set_background_color(BACKGROUND_COLOR)
         self.gui.display_pause_screen()
+
+    def canvas_clicked(self, event, canvas_key):
+        if canvas_key == '42':
+            return self.next_clicked(event)
+        else:
+            return self._canvas_clicked(event, canvas_key)
 
     def next_clicked(self, event=None):
         self.gui.last_clicked_button_canvas = "NB"
@@ -573,6 +517,7 @@ class StimulusWindow():
         self.root = tk.Toplevel(gui.root)
         self.is_fullscreen = False
         self.is_pointer_visible = True
+        self.image_files = gui.image_files
         self._make_widgets()
 
         self.set_background_color(BACKGROUND_COLOR)
@@ -618,8 +563,15 @@ class StimulusWindow():
         self.set_background_color(color)
 
     def display_stimulus(self, stimulus, shape_scale):
-        _display_shape(stimulus, self.bottom_canvas, shape_scale)
-        self.stimulus_displayed = True
+        pass
+        # _display_shape(stimulus, self.bottom_canvas, shape_scale)
+        # self.stimulus_displayed = True
+
+    def _display_image(self, symbol):
+        canvas = self.bottom_canvas
+        w = canvas.winfo_width()
+        h = canvas.winfo_height()
+        canvas.create_image(w / 2, h / 2, image=self.image_files[symbol], anchor=tk.CENTER)
 
     def clear(self):
         self.set_background_color(BACKGROUND_COLOR)
@@ -671,6 +623,8 @@ class MatchingToSample(Experiment):
                  right_response=YELLOWSQUARE,
                  use_screen1=True, stimulus_fraction_screen1=1):
 
+        # super().__init__(gui, is_combination=is_combination)
+
         # Left response button
         self.left_response = left_response
 
@@ -688,85 +642,67 @@ class MatchingToSample(Experiment):
 
         super().__init__(gui, is_combination=is_combination)
 
+        # The key for the canvas containing the correct option
+        self.correct_canvas_key = None
+
         self.is_correct = None
 
         # The last displayed sample
         self.sample = None
 
-        self.POT10 = [YELLOWSQUARE, BLUESQUARE] * 5
+        self.POT10 = list(self.gui.image_files.keys())[0:10]
 
         self._create_new_samples()
+
+    def start_trial(self, event=None):
+        self.gui.clear()
+        self.display_sample()
+        job = self.gui.root.after(config.SYMBOL_SHOW_TIME_MTS, self.display_options)
+        self.current_after_jobs = [job]
+
+    def display_sample(self):
+        self.sample = self.sample_pot.pop()
+        if len(self.sample_pot) == 0:
+            self._create_new_samples()
+        if self.use_screen1:
+            self.gui._display_image(self.sample, self.gui.canvas['12'])
+        if self.gui.use_screen2:
+            # self.gui.stimulus_window.display_stimulus(self.sample, shape_scale=1)
+            self.gui.stimulus_window._display_image(self.sample, self.gui.canvas['12'])
+        self.stimulus_displayed = True
 
     def _create_new_samples(self):
         self.sample_pot = list(self.POT10)  # Make a copy
         random.shuffle(self.sample_pot)
 
     def display_options(self):
-        if config.YELLOW_POS == 'left':
-            self.left_is_correct = (self.sample == YELLOWSQUARE)
-        else:
-            self.left_is_correct = (self.sample != YELLOWSQUARE)
-
-        # Left option
-        self._display_option(self.left_option, self.gui.left_canvas, config.SYMBOL_WIDTH)
-
-        # Left option
-        self._display_option(self.right_option, self.gui.right_canvas, config.SYMBOL_WIDTH)
+        pool = list(self.gui.image_files.keys())
+        pool = [s for s in pool if s != self.sample]  # Exclude the correct sample
+        options = [self.sample]  # The shown sample
+        options.extend(list(random.sample(pool, 5)))  # Five other random symbols
+        random.shuffle(options)
+        found_sample = False
+        for option, key in zip(options, ['21', '22', '23', '31', '32', '33']):
+            self.gui._display_image(option, self.gui.canvas[key])
+            if option == self.sample:
+                assert(not found_sample)
+                self.correct_canvas_key = key
+                found_sample = True
 
         self.gui.options_displayed = True
         self.tic = time.time()
 
-    def _display_option(self, option, canvas, shape_scale):
-        if option == YELLOWSQUARE:
-            _display_shape(YELLOWSQUARE, canvas, shape_scale=shape_scale, force_mid=True)
-        elif option == BLUESQUARE:
-            _display_shape(BLUESQUARE, canvas, shape_scale=shape_scale, force_mid=True)
-
-        elif option == BLUESTAR:
-            self.gui._display_image("blue_star.gif", canvas)
-        elif option == WHITESTAR:
-            self.gui._display_image("white_star.gif", canvas)
-
-        elif option == YELLOWCIRCLE:
-            self.gui._display_image("yellow_circle.gif", canvas)
-        elif option == WHITECIRCLE:
-            self.gui._display_image("white_circle.gif", canvas)
-
-    def _left_clicked(self, event=None):
-        if self.gui.options_displayed:
-            self.is_correct = self.left_is_correct
-            return self._option_clicked(event)
-
-    def _right_clicked(self, event=None):
-        if self.gui.options_displayed:
-            self.is_correct = not self.left_is_correct
-            return self._option_clicked(event)
-
-    def _option_clicked(self, event):
-        if self.is_correct:
-            self.correct_choice()
-        else:
-            self.incorrect_choice()
-        self.gui.options_displayed = False
-        self.write_to_file(event)
+    def _canvas_clicked(self, event, canvas_key):
+        if canvas_key in ('21', '22', '23', '31', '32', '33'):
+            if self.gui.options_displayed:
+                self.is_correct = (canvas_key == self.correct_canvas_key)
+                if self.is_correct:
+                    self.correct_choice()    
+                else:
+                    self.incorrect_choice()
+            self.gui.options_displayed = False
+            self.write_to_file(event)
         return "break"
-
-    def start_trial(self, event=None):
-        self.gui.clear()
-        self.display_random_symbol()
-        job = self.gui.root.after(config.SYMBOL_SHOW_TIME_MTS, self.display_options)
-        self.current_after_jobs = [job]
-
-    def display_random_symbol(self):
-        self.sample = self.sample_pot.pop()
-        if len(self.sample_pot) == 0:
-            self._create_new_samples()
-        if self.use_screen1:
-            self.gui.display_stimulus(self.sample, shape_scale=config.SYMBOL_WIDTH,
-                                      fraction=self.stimulus_fraction_screen1)
-        if self.gui.use_screen2:
-            self.gui.stimulus_window.display_stimulus(self.sample, shape_scale=1)
-        self.stimulus_displayed = True
 
     def get_file_data(self):
         if self.is_combination:
@@ -780,113 +716,6 @@ class MatchingToSample(Experiment):
 
     def get_stimulus_acronym(self):
         return self.sample
-
-    def is_sub_experiment_done(self):
-        return (self.success_frequency >= 0.8)
-
-    def set_left_right_option(self, left_option, right_option):
-        if config.YELLOW_POS == 'left':
-            self.left_option = right_option
-            self.right_option = left_option
-        else:
-            self.left_option = left_option
-            self.right_option = right_option
-
-
-class SingleStimulusDiscrimination(Experiment):
-    def __init__(self, gui, is_combination=False, exp_abbrev=None, use_screen1=True, delay=None):
-        # Display stimuli on screen 1
-        self.use_screen1 = use_screen1
-
-        if delay is None:
-            self.delay = config.DELAY
-        else:
-            self.delay = delay
-
-        self.exp_abbrev = exp_abbrev
-
-        super().__init__(gui, is_combination=is_combination)
-
-        self.is_correct = None
-
-        # The last displayed stimulus
-        self.stimulus = None
-
-        self.YELLOWSQUARE = 'yellowsquare'
-        self.BLUESQUARE = 'bluesquare'
-
-        self.POT10 = [self.YELLOWSQUARE, self.BLUESQUARE] * 5
-
-        self._create_new_stimuli()
-
-    def _create_new_stimuli(self):
-        self.stimulus_pot = list(self.POT10)  # Make a copy
-        random.shuffle(self.stimulus_pot)
-
-    def display_options(self):
-        if config.YELLOW_POS == 'left':
-            self.left_is_correct = (self.stimulus == self.YELLOWSQUARE)
-        else:
-            self.left_is_correct = (self.stimulus != self.YELLOWSQUARE)
-        if config.YELLOW_POS == 'left':
-            self.gui._display_image("white_circle.gif", self.gui.left_canvas)
-            self.gui._display_image("white_star.gif", self.gui.right_canvas)
-        else:
-            self.gui._display_image("white_star.gif", self.gui.left_canvas)
-            self.gui._display_image("white_circle.gif", self.gui.right_canvas)
-        self.gui.options_displayed = True
-        self.tic = time.time()
-
-    def _left_clicked(self, event=None):
-        if self.gui.options_displayed:
-            self.is_correct = self.left_is_correct
-            return self._option_clicked(event)
-
-    def _right_clicked(self, event=None):
-        if self.gui.options_displayed:
-            self.is_correct = not self.left_is_correct
-            return self._option_clicked(event)
-
-    def _option_clicked(self, event):
-        if self.is_correct:
-            self.correct_choice()
-        else:
-            self.incorrect_choice()
-        self.gui.options_displayed = False
-        self.write_to_file(event)
-        return "break"
-
-    def start_trial(self, event=None):
-        self.gui.clear()
-        self.display_random_symbol()
-        job1 = self.gui.root.after(config.STIMULUS_TIME, self.gui.clear)
-        job2 = self.gui.root.after(config.STIMULUS_TIME + self.delay, self.display_options)
-        self.current_after_jobs = [job1, job2]
-
-    def display_random_symbol(self):
-        self.stimulus = self.stimulus_pot.pop()
-        if len(self.stimulus_pot) == 0:
-            self._create_new_stimuli()
-        if self.use_screen1:
-            _display_shape(self.stimulus, self.top_mid_canvas,
-                           shape_scale=config.SYMBOL_WIDTH)
-        if self.gui.use_screen2:
-            _display_shape(self.stimulus, self.gui.stimulus_window.bottom_canvas,
-                           shape_scale=1)  # The canvas itself has the correct size
-        self.stimulus_displayed = True
-
-    def get_file_data(self):
-        if self.is_combination:
-            return [("YELLOW_POS", config.YELLOW_POS),
-                    ("SYMBOL_SHOW_TIME_MTS", config.SYMBOL_SHOW_TIME_MTS),
-                    ("STIMULUS_TIME", config.STIMULUS_TIME),
-                    ("DELAY", self.delay)]
-        else:
-            return [("STIMULUS_TIME", config.STIMULUS_TIME),
-                    ("DELAY", self.delay)]
-
-    def get_stimulus_acronym(self):
-        return self.stimulus
 
     def is_sub_experiment_done(self):
         return (self.success_frequency >= 0.8)
@@ -1041,7 +870,6 @@ class SubExperiment1a(MatchingToSample):
         self.stimulus_fraction_screen1 = 1
 
         self.use_screen1 = True
-        self.set_left_right_option(BLUESQUARE, YELLOWSQUARE)
 
     def get_ready_to_start_trial(self):
         if self.is_sub_experiment_done():
@@ -1062,7 +890,6 @@ class SubExperiment1b(MatchingToSample):
         self.stimulus_fraction_screen1 = 1
 
         self.use_screen1 = True
-        self.set_left_right_option(BLUESQUARE, YELLOWCIRCLE)
 
     def get_ready_to_start_trial(self):
         if self.is_sub_experiment_done():
@@ -1083,7 +910,6 @@ class SubExperiment2(MatchingToSample):
         self.stimulus_fraction_screen1 = 1
 
         self.use_screen1 = True
-        self.set_left_right_option(BLUESTAR, YELLOWCIRCLE)
 
         self.end_of_combination_sound_played = False
 
@@ -1103,172 +929,6 @@ class SubExperiment2(MatchingToSample):
 
     def result_filename(self):
         return Combination1.result_filename()
-
-
-class SubExperiment3a(MatchingToSample):
-    def __init__(self, gui):
-        super().__init__(gui, is_combination=True, exp_abbrev="3a")
-        self.sub_experiment_index = 31
-        self.stimulus_fraction_screen1 = 1
-
-        self.use_screen1 = True
-        self.set_left_right_option(BLUESTAR, YELLOWCIRCLE)
-
-    def get_ready_to_start_trial(self):
-        if self.is_sub_experiment_done():
-            next_experiment = SubExperiment3b(self.gui)
-            next_experiment.finished_trial_cnt = self.finished_trial_cnt
-            next_experiment.get_ready_to_start_trial()
-        else:
-            super().get_ready_to_start_trial()
-
-    def result_filename(self):
-        return Combination2.result_filename()
-
-
-class SubExperiment3b(MatchingToSample):
-    def __init__(self, gui):
-        super().__init__(gui, is_combination=True, exp_abbrev="3b")
-        self.sub_experiment_index = 32
-        self.stimulus_fraction_screen1 = 0.5
-
-        self.use_screen1 = True
-        self.set_left_right_option(BLUESTAR, YELLOWCIRCLE)
-
-    def get_ready_to_start_trial(self):
-        if self.is_sub_experiment_done():
-            next_experiment = SubExperiment3c(self.gui)
-            next_experiment.finished_trial_cnt = self.finished_trial_cnt
-            next_experiment.get_ready_to_start_trial()
-        else:
-            super().get_ready_to_start_trial()
-
-    def result_filename(self):
-        return Combination2.result_filename()
-
-
-class SubExperiment3c(MatchingToSample):
-    def __init__(self, gui):
-        super().__init__(gui, is_combination=True, exp_abbrev="3c")
-        self.sub_experiment_index = 33
-        self.stimulus_fraction_screen1 = 0.25
-
-        self.use_screen1 = True
-        self.set_left_right_option(BLUESTAR, YELLOWCIRCLE)
-
-    def get_ready_to_start_trial(self):
-        if self.is_sub_experiment_done():
-            next_experiment = SubExperiment4(self.gui)
-            next_experiment.finished_trial_cnt = self.finished_trial_cnt
-            next_experiment.get_ready_to_start_trial()
-        else:
-            super().get_ready_to_start_trial()
-
-    def result_filename(self):
-        return Combination2.result_filename()
-
-
-class SubExperiment4(MatchingToSample):
-    def __init__(self, gui):
-        super().__init__(gui, is_combination=True, exp_abbrev="4")
-        self.sub_experiment_index = 4
-
-        self.use_screen1 = False
-        self.set_left_right_option(BLUESTAR, YELLOWCIRCLE)
-
-    def get_ready_to_start_trial(self):
-        if self.is_sub_experiment_done():
-            next_experiment = SubExperiment5(self.gui)
-            next_experiment.finished_trial_cnt = self.finished_trial_cnt
-            next_experiment.get_ready_to_start_trial()
-        else:
-            super().get_ready_to_start_trial()
-
-    def result_filename(self):
-        return Combination2.result_filename()
-
-
-class SubExperiment5(MatchingToSample):
-    def __init__(self, gui):
-        super().__init__(gui, is_combination=True, exp_abbrev="5")
-        self.sub_experiment_index = 5
-
-        self.use_screen1 = False
-        self.set_left_right_option(WHITESTAR, YELLOWCIRCLE)
-
-    def get_ready_to_start_trial(self):
-        if self.is_sub_experiment_done():
-            next_experiment = SubExperiment6(self.gui)
-            next_experiment.finished_trial_cnt = self.finished_trial_cnt
-            next_experiment.get_ready_to_start_trial()
-        else:
-            super().get_ready_to_start_trial()
-
-    def result_filename(self):
-        return Combination2.result_filename()
-
-
-class SubExperiment6(MatchingToSample):
-    def __init__(self, gui):
-        super().__init__(gui, is_combination=True, exp_abbrev="6")
-        self.sub_experiment_index = 6
-
-        self.use_screen1 = False
-        self.set_left_right_option(WHITESTAR, WHITECIRCLE)
-
-    def get_ready_to_start_trial(self):
-        if self.is_sub_experiment_done():
-            next_experiment = SubExperiment7(self.gui)
-            next_experiment.finished_trial_cnt = self.finished_trial_cnt
-            next_experiment.get_ready_to_start_trial()
-        else:
-            super().get_ready_to_start_trial()
-
-    def result_filename(self):
-        return Combination2.result_filename()
-
-
-class SubExperiment7(SingleStimulusDiscrimination):
-    def __init__(self, gui):
-        super().__init__(gui, is_combination=True, exp_abbrev="7")
-        self.sub_experiment_index = 7
-
-        self.use_screen1 = False
-        self.delay = 0
-
-    def get_ready_to_start_trial(self):
-        if self.is_sub_experiment_done():
-            next_experiment = SubExperiment8(self.gui)
-            next_experiment.finished_trial_cnt = self.finished_trial_cnt
-            next_experiment.get_ready_to_start_trial()
-        else:
-            super().get_ready_to_start_trial()
-
-    def result_filename(self):
-        return Combination2.result_filename()
-
-
-class SubExperiment8(SingleStimulusDiscrimination):
-    def __init__(self, gui):
-        super().__init__(gui, is_combination=True, exp_abbrev="8")
-        self.sub_experiment_index = 8
-
-        self.use_screen1 = False
-        self.delay = 500
-
-        self.end_of_combination_sound_played = False
-
-    def get_ready_to_start_trial(self):
-        if self.is_sub_experiment_done():
-            self.gui.display_pause_screen()
-            if not self.end_of_combination_sound_played:
-                self.gui.root.after(3000, _play, 'end_of_combination.wav')
-            self.end_of_combination_sound_played = True
-        else:
-            super().get_ready_to_start_trial()
-
-    def result_filename(self):
-        return Combination2.result_filename()
 
 
 class Combination1():
@@ -1301,48 +961,6 @@ class Combination1():
     @staticmethod
     def _experiment_abbreviation():
         return "Combination1"
-
-
-class Combination2():
-    def __init__(self, gui):
-        self.gui = gui
-        filename = self.result_filename()
-        self.result_file = ResultFile(filename)
-
-        sub_experiment_index = self.result_file.get_last_value('sub_experiment_index')
-        if sub_experiment_index is None:
-            sub_experiment_index = 31
-        else:
-            sub_experiment_index = int(sub_experiment_index)
-
-        if sub_experiment_index == 31:
-            SubExperiment3a(gui)
-        elif sub_experiment_index == 32:
-            SubExperiment3b(gui)
-        elif sub_experiment_index == 33:
-            SubExperiment3c(gui)
-        elif sub_experiment_index == 4:
-            SubExperiment4(gui)
-        elif sub_experiment_index == 5:
-            SubExperiment5(gui)
-        elif sub_experiment_index == 6:
-            SubExperiment6(gui)
-        elif sub_experiment_index == 7:
-            SubExperiment7(gui)
-        elif sub_experiment_index == 8:
-            SubExperiment8(gui)
-        else:
-            raise Exception(f"Unknown sub experiment index {sub_experiment_index}.")
-
-    @staticmethod
-    def result_filename():
-        experiment = Combination2._experiment_abbreviation()
-        subject = config.SUBJECT_TAG.lower()
-        return subject + "_" + experiment + ".csv"
-
-    @staticmethod
-    def _experiment_abbreviation():
-        return "Combination2"
 
 
 class ResultFile():
@@ -1473,73 +1091,11 @@ def timestamp():
 
 
 if __name__ == '__main__':
-    gui = Gui(use_screen2=True)
+    gui = Gui(use_screen2=False)
     e = None
-    if config.EXPERIMENT == config.COMBINATION1:
+    if config.EXPERIMENT == config.DMTS_PROBE:
         e = Combination1(gui)
-    elif config.EXPERIMENT == config.COMBINATION2:
-        e = Combination2(gui)
-
-    elif config.EXPERIMENT == config.EXP1a:
-        e = MatchingToSample(gui, exp_abbrev=config.EXP1a)
-        e.use_screen1 = True
-        e.set_left_right_option(BLUESQUARE, YELLOWSQUARE)
-
-    elif config.EXPERIMENT == config.EXP1b:
-        e = MatchingToSample(gui, exp_abbrev=config.EXP1b)
-        e.use_screen1 = True
-        e.set_left_right_option(BLUESQUARE, YELLOWCIRCLE)
-
-    elif config.EXPERIMENT == config.EXP2:
-        e = MatchingToSample(gui, exp_abbrev=config.EXP2)
-        e.use_screen1 = True
-        e.set_left_right_option(BLUESTAR, YELLOWCIRCLE)
-
-    elif config.EXPERIMENT == config.EXP3a:
-        e = MatchingToSample(gui, exp_abbrev=config.EXP3a)
-        e.use_screen1 = True
-        e.set_left_right_option(BLUESTAR, YELLOWCIRCLE)
-
-    elif config.EXPERIMENT == config.EXP3b:
-        e = MatchingToSample(gui, exp_abbrev=config.EXP3b)
-        e.stimulus_fraction_screen1 = 0.5
-        e.use_screen1 = True
-        e.set_left_right_option(BLUESTAR, YELLOWCIRCLE)
-
-    elif config.EXPERIMENT == config.EXP3c:
-        e = MatchingToSample(gui, exp_abbrev=config.EXP3c)
-        e.stimulus_fraction_screen1 = 0.25
-        e.use_screen1 = True
-        e.set_left_right_option(BLUESTAR, YELLOWCIRCLE)
-
-    elif config.EXPERIMENT == config.EXP4:
-        e = MatchingToSample(gui, exp_abbrev=config.EXP4)
-        e.use_screen1 = False
-        e.set_left_right_option(BLUESTAR, YELLOWCIRCLE)
-
-    elif config.EXPERIMENT == config.EXP5:
-        e = MatchingToSample(gui, exp_abbrev=config.EXP5)
-        e.use_screen1 = False
-        e.set_left_right_option(WHITESTAR, YELLOWCIRCLE)
-
-    elif config.EXPERIMENT == config.EXP6:
-        e = MatchingToSample(gui, exp_abbrev=config.EXP6)
-        e.use_screen1 = False
-        e.set_left_right_option(WHITESTAR, WHITECIRCLE)
-
-    elif config.EXPERIMENT == config.EXP7:
-        e = SingleStimulusDiscrimination(gui, exp_abbrev=config.EXP7)
-        e.use_screen1 = False
-        e.delay = 0
-
-    elif config.EXPERIMENT == config.EXP8:
-        e = SingleStimulusDiscrimination(gui, exp_abbrev=config.EXP8)
-        e.use_screen1 = False
-        e.delay = 500
-
-    elif config.EXPERIMENT == config.SEQUENCE_DISCRIMINATION_PROBE:
-        e = SequenceDiscriminationProbe(gui)
     else:
         print("Error: Undefined experiment name '" + config.EXPERIMENT + "'.")
-    if e:
+    if e is not None:
         e.gui.root.mainloop()

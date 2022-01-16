@@ -29,20 +29,16 @@ BLACKOUT_COLOR = hex_format % config.BLACKOUT_COLOR_RGB
 COLOR_A = hex_format % config.COLOR_A_RGB
 COLOR_B = hex_format % config.COLOR_B_RGB
 
-# frame_options = dict()  # For debugging frame positioning
-frame_options = {'highlightbackground': 'blue',
-                 'highlightcolor': 'blue',
-                 'highlightthickness': 1,
-                 'bd': 0}
-frame_options2 = {'highlightbackground': 'blue',
-                 'highlightcolor': 'blue',
-                 'highlightthickness': 5,
-                 'bd': 0}
+frame_options = dict()  # For debugging frame positioning
+# frame_options = {'highlightbackground': 'blue',
+#                  'highlightcolor': 'blue',
+#                  'highlightthickness': 1,
+#                  'bd': 0}
 
-# canvas_options = {'bd': 0, 'highlightthickness': 0}
-canvas_options = {'bd': 1, 'highlightthickness': 1}
+canvas_options = {'bd': 0, 'highlightthickness': 0}
+# canvas_options = {'bd': 1, 'highlightthickness': 1}
 
-TOL = 0.99
+TOL = 0.33  # 0.99
 TIMETOL = 3  # Round delay times to nearest millisecond
 
 
@@ -121,7 +117,7 @@ class Gui():
             self.frame[i] = tk.Frame(self.root, width=W, height=h, **frame_options)
             self.frame[i].pack(side=tk.TOP, anchor=tk.N)
             for j in ['1', '2', '3']:
-                self.frame[i + j] = tk.Frame(self.frame[i], width=w, height=h, **frame_options2)
+                self.frame[i + j] = tk.Frame(self.frame[i], width=w, height=h, **frame_options )
                 self.frame[i + j].pack_propagate(False)
                 self.frame[i + j].pack(side=tk.LEFT)
                 self.canvas[i + j] = tk.Canvas(self.frame[i + j], width=h, height=h, **canvas_options)
@@ -618,24 +614,9 @@ WHITESTAR = 'whitestar'
 
 class MatchingToSample(Experiment):
     def __init__(self, gui, is_combination=False,
-                 exp_abbrev=None,
-                 left_response=BLUESQUARE,
-                 right_response=YELLOWSQUARE,
-                 use_screen1=True, stimulus_fraction_screen1=1):
+                 exp_abbrev=None):
 
         # super().__init__(gui, is_combination=is_combination)
-
-        # Left response button
-        self.left_response = left_response
-
-        # Right response button
-        self.right_response = right_response
-
-        # Display samples on screen 1
-        self.use_screen1 = use_screen1
-
-        # The fraction of the stimulus to display on screen 1
-        self.stimulus_fraction_screen1 = stimulus_fraction_screen1
 
         # Experiment abbreviation
         self.exp_abbrev = exp_abbrev
@@ -650,7 +631,7 @@ class MatchingToSample(Experiment):
         # The last displayed sample
         self.sample = None
 
-        self.POT10 = list(self.gui.image_files.keys())[0:10]
+        self.SAMPLE_POT = list(self.gui.image_files.keys())[0:10]
 
         self._create_new_samples()
 
@@ -658,31 +639,35 @@ class MatchingToSample(Experiment):
         self.gui.clear()
         self.display_sample()
         job = self.gui.root.after(config.SYMBOL_SHOW_TIME_MTS, self.display_options)
+        # job2 = self.gui.root.after(config.SYMBOL_SHOW_TIME_MTS, self.gui.clear)
         self.current_after_jobs = [job]
 
     def display_sample(self):
         self.sample = self.sample_pot.pop()
         if len(self.sample_pot) == 0:
             self._create_new_samples()
-        if self.use_screen1:
-            self.gui._display_image(self.sample, self.gui.canvas['12'])
+        self.gui._display_image(self.sample, self.gui.canvas['12'])
         if self.gui.use_screen2:
             # self.gui.stimulus_window.display_stimulus(self.sample, shape_scale=1)
             self.gui.stimulus_window._display_image(self.sample, self.gui.canvas['12'])
         self.stimulus_displayed = True
 
     def _create_new_samples(self):
-        self.sample_pot = list(self.POT10)  # Make a copy
+        self.sample_pot = list(self.SAMPLE_POT)  # Make a copy
         random.shuffle(self.sample_pot)
 
     def display_options(self):
+        self.gui.clear()
         pool = list(self.gui.image_files.keys())
         pool = [s for s in pool if s != self.sample]  # Exclude the correct sample
         options = [self.sample]  # The shown sample
         options.extend(list(random.sample(pool, 5)))  # Five other random symbols
         random.shuffle(options)
+
+        canvas_keys = ['21', '22', '23', '31', '32', '33']
+        self.canvas_option_dict = {key: option for key, option in zip(canvas_keys, options)}
         found_sample = False
-        for option, key in zip(options, ['21', '22', '23', '31', '32', '33']):
+        for key, option in self.canvas_option_dict.items():
             self.gui._display_image(option, self.gui.canvas[key])
             if option == self.sample:
                 assert(not found_sample)
@@ -695,6 +680,7 @@ class MatchingToSample(Experiment):
     def _canvas_clicked(self, event, canvas_key):
         if canvas_key in ('21', '22', '23', '31', '32', '33'):
             if self.gui.options_displayed:
+                self.clicked_option = self.canvas_option_dict[canvas_key]
                 self.is_correct = (canvas_key == self.correct_canvas_key)
                 if self.is_correct:
                     self.correct_choice()    
@@ -702,7 +688,7 @@ class MatchingToSample(Experiment):
                     self.incorrect_choice()
             self.gui.options_displayed = False
             self.write_to_file(event)
-        return "break"
+            return "break"
 
     def get_file_data(self):
         if self.is_combination:
@@ -720,6 +706,139 @@ class MatchingToSample(Experiment):
     def is_sub_experiment_done(self):
         return (self.success_frequency >= 0.8)
 
+
+class MatchingToSampleWithProbes(MatchingToSample):
+    PROBE_TYPE1 = [
+        (("A", 500), ("B", 1000)),
+        (("A", 1500), ("B", 1000)),
+        (("A", 4500), ("B", 1000))
+    ]
+    PROBE_TYPE2 = [
+        (("B", 500), ("A", 1000)),
+        (("B", 1500), ("A", 1000)),
+        (("B", 4500), ("A", 1000))
+    ]
+    PROBE_TYPE3 = [
+        (("A", 500), ("B", 500)),
+        (("A", 100), ("B", 500)),  # XXX 100 should be 1000?
+        (("A", 2000), ("B", 500))
+    ]
+    PROBE_TYPE4 = [
+        (("B", 500), ("A", 500)),
+        (("B", 1000), ("A", 500)),
+        (("B", 2000), ("A", 500))
+    ]
+    PROBE_TYPES = PROBE_TYPE1 + PROBE_TYPE2 + PROBE_TYPE3 + PROBE_TYPE4
+
+    def __init__(self, gui, is_combination=False, exp_abbrev=None):
+        super().__init__(gui, is_combination)
+        self.PROBE_TRIAL_INTERVAL = 2
+        self.INTER_STIMULUS_TIME = 300
+        self.sample_cnt = 0
+
+        self.PROBE = {'A': 'blue_star.gif',
+                      'B': 'yellow_circle.gif'}
+        self.PROBE_POT = MatchingToSampleWithProbes.PROBE_TYPES
+
+        self._create_new_probes()
+
+    def start_trial(self, event=None):
+        self.gui.clear()
+        time_to_options = self.display_sample()
+        job = self.gui.root.after(time_to_options, self.display_options)
+        self.current_after_jobs = [job]
+
+    def _display_probe(self, probe):
+        self.gui.clear()
+        canvas = self.gui.canvas['12']
+        stimulus1, time1 = probe[0]
+        stimulus2, time2 = probe[1]
+
+        stimulus1_image = self.PROBE[stimulus1]
+        stimulus2_image = self.PROBE[stimulus2]
+        self.gui._display_image(stimulus1_image, canvas)
+
+        job1 = self.gui.root.after(time1, self.gui.clear)
+        job2 = self.gui.root.after(time1 + self.INTER_STIMULUS_TIME, self.gui._display_image, stimulus2_image, canvas)
+        job3 = self.gui.root.after(time1 + self.INTER_STIMULUS_TIME + time2, self.gui.clear)
+        self.current_after_jobs.extend([job1, job2, job3])
+        return time1 + self.INTER_STIMULUS_TIME + time2
+
+    def display_sample(self):
+        self.sample_cnt += 1
+        is_probe_trial = (self.sample_cnt % self.PROBE_TRIAL_INTERVAL == 0)
+        if is_probe_trial:
+            self.probe = self.probe_pot.pop()
+            self.sample = None
+            if len(self.probe_pot) == 0:
+                self._create_new_probes()
+            return self._display_probe(self.probe)
+
+        else:
+            self.probe = None
+            super().display_sample()
+            return config.SYMBOL_SHOW_TIME_MTS
+
+    def display_options(self):
+        self.gui.clear()
+        if self.probe is not None:
+            self.gui._display_image(self.PROBE['A'], self.gui.canvas['21'])
+            self.gui._display_image(self.PROBE['B'], self.gui.canvas['23'])
+            self.gui.options_displayed = True
+            self.tic = time.time()
+        else:
+            super().display_options()
+        # pool = list(self.gui.image_files.keys())
+        # pool = [s for s in pool if s != self.sample]  # Exclude the correct sample
+        # options = [self.sample]  # The shown sample
+        # options.extend(list(random.sample(pool, 5)))  # Five other random symbols
+        # random.shuffle(options)
+
+        # canvas_keys = ['21', '22', '23', '31', '32', '33']
+        # self.canvas_option_dict = {key: option for key, option in zip(canvas_keys, options)}
+        # found_sample = False
+        # for key, option in self.canvas_option_dict.items():
+        #     self.gui._display_image(option, self.gui.canvas[key])
+        #     if option == self.sample:
+        #         assert(not found_sample)
+        #         self.correct_canvas_key = key
+        #         found_sample = True
+
+        # self.gui.options_displayed = True
+        # self.tic = time.time()
+
+    def _canvas_clicked(self, event, canvas_key):
+        if self.probe is not None:
+            if canvas_key in ('21', '23'):
+                if self.gui.options_displayed:
+                    self.is_correct = None
+                    self.write_to_file(event=event)
+                    self.gui.options_displayed = False
+                    self.gui.clear()
+                    self.get_ready_to_start_trial()
+                self.gui.options_displayed = False
+                self.write_to_file(event)
+                return "break"      
+        else:
+            return super()._canvas_clicked(event, canvas_key)
+        # if canvas_key in ('21', '22', '23', '31', '32', '33'):
+        #     if self.gui.options_displayed:
+        #         self.clicked_option = self.canvas_option_dict[canvas_key]
+        #         self.is_correct = (canv
+        # as_key == self.correct_canvas_key)
+        #         if self.is_correct:
+        #             self.correct_choice()    
+        #         else:
+        #             self.incorrect_choice()
+        #     self.gui.options_displayed = False
+        #     self.write_to_file(event)
+        #     return "break"
+
+    def _create_new_probes(self):
+        self.probe_pot = list(self.PROBE_POT)  # Make a copy
+        random.shuffle(self.probe_pot)
+
+    
 
 class SequenceDiscriminationProbe(Experiment):
     SHORT_AB = "shortAB"
@@ -863,33 +982,10 @@ class SequenceDiscriminationProbe(Experiment):
         return (self.success_frequency >= 0.8)
 
 
-class SubExperiment1a(MatchingToSample):
+class SubExperiment1(MatchingToSample):
     def __init__(self, gui):
-        super().__init__(gui, is_combination=True, exp_abbrev="1a")
-        self.sub_experiment_index = 11
-        self.stimulus_fraction_screen1 = 1
-
-        self.use_screen1 = True
-
-    def get_ready_to_start_trial(self):
-        if self.is_sub_experiment_done():
-            next_experiment = SubExperiment1b(self.gui)
-            next_experiment.finished_trial_cnt = self.finished_trial_cnt
-            next_experiment.get_ready_to_start_trial()
-        else:
-            super().get_ready_to_start_trial()
-
-    def result_filename(self):
-        return Combination1.result_filename()
-
-
-class SubExperiment1b(MatchingToSample):
-    def __init__(self, gui):
-        super().__init__(gui, is_combination=True, exp_abbrev="1b")
-        self.sub_experiment_index = 12
-        self.stimulus_fraction_screen1 = 1
-
-        self.use_screen1 = True
+        super().__init__(gui, is_combination=True, exp_abbrev="pretraining")
+        self.sub_experiment_index = 1
 
     def get_ready_to_start_trial(self):
         if self.is_sub_experiment_done():
@@ -903,21 +999,14 @@ class SubExperiment1b(MatchingToSample):
         return Combination1.result_filename()
 
 
-class SubExperiment2(MatchingToSample):
+class SubExperiment2(MatchingToSampleWithProbes):
     def __init__(self, gui):
-        super().__init__(gui, is_combination=True, exp_abbrev="2")
+        super().__init__(gui, is_combination=True, exp_abbrev="probes")
         self.sub_experiment_index = 2
-        self.stimulus_fraction_screen1 = 1
-
-        self.use_screen1 = True
 
         self.end_of_combination_sound_played = False
 
     def get_ready_to_start_trial(self):
-        # next_experiment = SubExperiment3a(self.gui)
-        # next_experiment.finished_trial_cnt = self.finished_trial_cnt
-        # next_experiment.get_ready_to_start_trial()
-
         if self.is_sub_experiment_done():
             self.gui.display_pause_screen()
 
@@ -939,14 +1028,12 @@ class Combination1():
 
         sub_experiment_index = self.result_file.get_last_value('sub_experiment_index')
         if sub_experiment_index is None:
-            sub_experiment_index = 11
+            sub_experiment_index = 1
         else:
             sub_experiment_index = int(sub_experiment_index)
 
-        if sub_experiment_index == 11:
-            SubExperiment1a(gui)
-        elif sub_experiment_index == 12:
-            SubExperiment1b(gui)
+        if sub_experiment_index == 1:
+            SubExperiment1(gui)
         elif sub_experiment_index == 2:
             SubExperiment2(gui)
         else:

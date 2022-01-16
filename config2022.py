@@ -6,7 +6,7 @@ EXPERIMENT = DMTS_PROBE
 
 # The subject exposed to the experiment. Used in the name of the result file and
 # as the "subject" column in the result file
-SUBJECT_TAG = "johan"
+SUBJECT_TAG = "markusss"
 
 
 ####################
@@ -89,9 +89,7 @@ SYMBOL_SHOW_TIME_MTS = 1000
 STIMULUS_TIME = 2000
 
 # The time (in ms) of delay between the stimulus disappears until the response buttons appear
-# Note: Only used when EXPERIMENT = SINGLE_STIMULUS_DISCRIMINATION or
-# SEQUENCE_DISCRIMINATION_PROBE, not in COMBINATION1
-DELAY = 500
+DELAY = 10
 
 
 #################################

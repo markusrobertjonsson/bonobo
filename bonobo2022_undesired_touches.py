@@ -22,18 +22,10 @@ if platform == "win32":
 random.seed()
 
 hex_format = "#%02x%02x%02x"
-
-PRETRAINING = "pretraining"
-PROBES = "probes"
-
-# COLORS
 START_SCREEN_COLOR = hex_format % config.START_SCREEN_COLOR_RGB
 BACKGROUND_COLOR = hex_format % config.BACKGROUND_COLOR_RGB
 NEXT_BUTTON_COLOR = hex_format % config.NEXT_BUTTON_COLOR_RGB
 BLACKOUT_COLOR = hex_format % config.BLACKOUT_COLOR_RGB
-
-# PARAMETERS
-DMTS_DELAY = 200
 
 frame_options = dict()  # For debugging frame positioning
 # frame_options = {'highlightbackground': 'blue',
@@ -45,6 +37,7 @@ canvas_options = {'bd': 0, 'highlightthickness': 0}
 # canvas_options = {'bd': 1, 'highlightthickness': 1}
 
 TOL = 0.33  # 0.99
+TIMETOL = 3  # Round delay times to nearest millisecond
 
 
 class Gui():
@@ -228,6 +221,10 @@ class Gui():
                                           outline='', width=0)
         self.next_displayed = True
 
+    def display_stimulus(self, stimulus, shape_scale, fraction=1, force_mid=False):
+        _display_shape(stimulus, self.canvas['12'], shape_scale, fraction)
+        self.stimulus_displayed = True
+
     def _display_image(self, symbol, canvas):
         w = canvas.winfo_width()
         h = canvas.winfo_height()
@@ -241,9 +238,43 @@ class Gui():
         self.blackout_displayed = False
         self.snack_time = False
 
+    # def _screen_touched(self):
+    #     if self.pause_screen_displayed:
+    #         return "PS"  # Pause/Pink screen
+    #     elif self.next_displayed:
+    #         return "NBS"  # Next button screen
+    #     elif self.blackout_displayed:
+    #         return "BS"  # Blackout screen
+    #     elif self.options_displayed:
+    #         return "RS"  # Response screen
+    #     elif self.snack_time:
+    #         return "ST"  # Snack time
+    #     elif self.stimulus_displayed:
+    #         return "SS"  # Stimulus screen
+    #     else:
+    #         return "None"
+
+    # def _cell_touched(self, x, y):
+    #     w = self.screen_width
+    #     h = self.screen_height
+    #     if x <= w / 3:
+    #         horiz = 'L'
+    #     elif x <= 2 * w / 3:
+    #         horiz = 'M'
+    #     else:
+    #         horiz = 'R'
+
+    #     if y <= h / 3:
+    #         vert = 'T'
+    #     elif y <= 2 * h / 3:
+    #         vert = 'M'
+    #     else:
+    #         vert = 'B'
+    #     return horiz + vert
+
 
 class Experiment():
-    def __init__(self, gui):
+    def __init__(self, gui, is_combination=False):
         self.gui = gui
 
         for key, canvas in self.gui.canvas.items():
@@ -252,12 +283,13 @@ class Experiment():
         if gui.use_screen2:
             self.gui.stimulus_window.root.bind("<space>", self.space_pressed)
 
-        filename = result_filename()
+        self.is_combination = is_combination
+        self.sub_experiment_index = None
+        filename = self.result_filename()
         self.result_file = ResultFile(filename)
         self.started_trial_cnt = 0
         self.finished_trial_cnt = 0
         self.clicked_option = None
-        self.tic = None
 
         # Current self.gui.root.after jobs. Stored here to be able to cancel them in space_pressed.
         self.current_after_jobs = []
@@ -337,6 +369,16 @@ class Experiment():
     def _right_clicked(self, event):
         assert(False)  # Must be overridden
 
+    def result_filename(self):
+        """
+        Return the file name of the result file.
+        """
+        experiment = self.exp_abbrev
+        assert(experiment is not None)
+        subject = config.SUBJECT_TAG.lower()
+        date = datestamp()
+        return subject + "_" + experiment + "_" + date + ".csv"
+
     def update_success_frequency(self, is_correct):
         if is_correct is None:  # For example for probe trials
             return
@@ -362,6 +404,7 @@ class Experiment():
         self.add_current_after_jobs(job)
 
     def incorrect_choice(self):
+        # self.cancel_all_after_jobs()
         self.gui.blackout()
         play_incorrect()
         job = self.gui.root.after(config.BLACKOUT_TIME, self.get_ready_to_start_trial)
@@ -370,43 +413,72 @@ class Experiment():
     def write_to_file(self, event):
         self.finished_trial_cnt += 1
 
+        toc = time.time()
         response_time = None
-        if self.tic is not None:
-            toc = time.time()
-            response_time = round(toc - self.tic, 3)  # Round to milliseconds
+        if hasattr(self, "tic") and self.tic is not None:
+            response_time = round(toc - self.tic, TIMETOL)
 
-        if hasattr(self, 'probe') and self.probe is not None:
-            probe_stimulus1 = self.probe_stimulus1
-            probe_stimulus2 = self.probe_stimulus2
-            probe_time1 = self.probe[0]
-            probe_time2 = self.probe[1]
+        file_data = list()
+        if self.success_frequency is not None:
+            self.update_success_frequency(self.is_correct)
+            file_data.extend([("freq_correct", self.success_frequency)])
         else:
-            probe_stimulus1 = None
-            probe_stimulus2 = None
-            probe_time1 = None
-            probe_time2 = None
+            file_data.extend([("freq_correct", "None")])
 
-        self.update_success_frequency(self.is_correct)
-        file_data = [("freq_correct", self.success_frequency),
-                     ("subject", config.SUBJECT_TAG),
-                     ("experiment", self.exp_abbrev),
-                     ("date", datestamp()),
-                     ("timestamp", timestamp()),
-                     ("trial", self.started_trial_cnt),
-                     ("sample", self.sample),
-                     ("probe_stimulus1", probe_stimulus1),
-                     ("probe_time1", probe_time1),
-                     ("probe_stimulus2", probe_stimulus2),
-                     ("probe_time2", probe_time2),
-                     ("response", self.clicked_option),
-                     ("is_correct", self.is_correct),
-                     ("response_time", response_time)]
+        if self.is_combination:
+            file_data.extend([("sub_experiment_index", self.sub_experiment_index)])
+
+        file_data.extend([("subject", config.SUBJECT_TAG),
+                          ("experiment", self.exp_abbrev),
+                          ("date", datestamp()),
+                          ("timestamp", timestamp()),
+                          ("trial", self.started_trial_cnt),
+                          ("response", self.clicked_option)])
+
+        if self.is_correct is not None:
+            file_data.extend([("is_correct", self.is_correct)])
+        else:
+            file_data.extend([("is_correct", "None")])
+
+        file_data.extend([("response_time", response_time)])
+
+        # Add experiment specific data
+        file_data.extend(self.get_file_data())
+
+        file_data.extend([("BACKGROUND_COLOR", BACKGROUND_COLOR),
+                          ("NEXT_BUTTON_COLOR", NEXT_BUTTON_COLOR),
+                          ("BLACKOUT_COLOR", BLACKOUT_COLOR),
+                          ("BLACKOUT_TIME", config.BLACKOUT_TIME),
+                          ("DELAY_AFTER_REWARD", config.DELAY_AFTER_REWARD)])
+
+        # # The coordinate of the click
+        # x = y = "None"
+        # if event is not None:
+        #     x = event.x_root
+        #     y = event.y_root
+        # file_data.extend([("x", x), ("y", y)])
+
+        # # The "undesired click" related data
+        # file_data.extend([("undesired_touch", is_undesired)])
+
+        # screen_touched = self.gui._screen_touched()
+        # file_data.extend([("screen_touched", screen_touched)])
+
+        # cell_touched = self.gui._cell_touched(x, y)
+        # file_data.extend([("cell_touched", cell_touched)])
+
+        # button_touched = self.gui.last_clicked_button_canvas
+        # file_data.extend([("button_touched", button_touched)])
+        # self.gui.last_clicked_button_canvas = "None"  # Reset for next click
 
         headers = list()
         values = list()
         for data in file_data:
-            headers.append(data[0])
-            values.append(str(data[1]))
+            header, value = data
+            if data is None:
+                data = "None"
+            headers.append(header)
+            values.append(value)
         self.result_file.write(headers, values)
 
 
@@ -461,6 +533,17 @@ class StimulusWindow():
         self.clear_canvases()
         self.set_background_color(color)
 
+    def display_stimulus(self, stimulus, shape_scale):
+        pass
+        # _display_shape(stimulus, self.bottom_canvas, shape_scale)
+        # self.stimulus_displayed = True
+
+    # def _display_image(self, symbol):
+    #     canvas = self.bottom_canvas
+    #     w = canvas.winfo_width()
+    #     h = canvas.winfo_height()
+    #     canvas.create_image(w / 2, h / 2, image=self.image_files[symbol], anchor=tk.CENTER)
+
     def _display_image(self, symbol, canvas):
         w = canvas.winfo_width()
         h = canvas.winfo_height()
@@ -481,8 +564,7 @@ class StimulusWindow():
         self.root.bind("<F10>", self.toggle_pointer_visibility)
 
         H = self.root.winfo_screenheight() * TOL
-        SCREEN2_STIMULUS_WIDTH = 0.5
-        h = H * SCREEN2_STIMULUS_WIDTH
+        h = H * config.SCREEN2_STIMULUS_WIDTH
         self.bottom_frame = tk.Frame(self.root, width=h, height=h, **frame_options)
         self.bottom_canvas = tk.Canvas(self.bottom_frame, width=h, height=h * 0.99,
                                        **canvas_options)
@@ -502,12 +584,23 @@ class StimulusWindow():
         exit(0)
 
 
-class DMTS(Experiment):
-    def __init__(self, gui):
-        super().__init__(gui)
+BLUESQUARE = 'bluesquare'
+YELLOWSQUARE = 'yellowsquare'
+YELLOWCIRCLE = 'yellowcircle'
+WHITECIRCLE = 'whitecircle'
+BLUESTAR = 'bluestar'
+WHITESTAR = 'whitestar'
+
+
+class MatchingToSample(Experiment):
+    def __init__(self, gui, is_combination=False, exp_abbrev=None):
+
+        # super().__init__(gui, is_combination=is_combination)
 
         # Experiment abbreviation
-        self.exp_abbrev = PRETRAINING
+        self.exp_abbrev = exp_abbrev
+
+        super().__init__(gui, is_combination=is_combination)
 
         # The key for the canvas containing the correct option
         self.correct_canvas_key = None
@@ -527,9 +620,8 @@ class DMTS(Experiment):
     def start_trial(self, event=None):
         self.gui.clear()
         self.display_sample()
-        job1 = self.gui.root.after(config.SYMBOL_SHOW_TIME_MTS, self.gui.clear)
-        job2 = self.gui.root.after(config.SYMBOL_SHOW_TIME_MTS + DMTS_DELAY, self.display_options)
-        self.add_current_after_jobs([job1, job2])
+        job = self.gui.root.after(config.SYMBOL_SHOW_TIME_MTS, self.display_options)
+        self.add_current_after_jobs(job)
 
     def display_sample(self):
         self.sample = self.sample_pot.pop()
@@ -537,6 +629,7 @@ class DMTS(Experiment):
             self._create_new_samples()
         self.gui._display_image(self.sample, self.gui.canvas['12'])
         if self.gui.use_screen2:
+            # self.gui.stimulus_window.display_stimulus(self.sample, shape_scale=1)
             self.gui.stimulus_window._display_image(self.sample, self.gui.stimulus_window.bottom_canvas)
         self.stimulus_displayed = True
 
@@ -579,6 +672,9 @@ class DMTS(Experiment):
             self.write_to_file(event)
             return "break"
 
+    def get_file_data(self):
+        return [("SYMBOL_SHOW_TIME_MTS", config.SYMBOL_SHOW_TIME_MTS)]
+
     def is_sub_experiment_done(self):
         if self.success_frequency is None:
             return False
@@ -586,30 +682,38 @@ class DMTS(Experiment):
             return (self.success_frequency >= 0.8)
 
 
-class DMTSWithProbes(DMTS):
-    PROBE_TYPES = [
-        (500, 1000),
-        (1500, 1000),
-        (4500, 1000),
-        (1000, 500),
-        (1000, 1500),
-        (1000, 4500)
+class MatchingToSampleWithProbes(MatchingToSample):
+    PROBE_TYPE1 = [
+        (("A", 500), ("B", 1000)),
+        (("A", 1500), ("B", 1000)),
+        (("A", 4500), ("B", 1000))
     ]
+    PROBE_TYPE2 = [
+        (("B", 500), ("A", 1000)),
+        (("B", 1500), ("A", 1000)),
+        (("B", 4500), ("A", 1000))
+    ]
+    PROBE_TYPE3 = [
+        (("A", 500), ("B", 500)),
+        (("A", 1000), ("B", 500)),
+        (("A", 2000), ("B", 500))
+    ]
+    PROBE_TYPE4 = [
+        (("B", 500), ("A", 500)),
+        (("B", 1000), ("A", 500)),
+        (("B", 2000), ("A", 500))
+    ]
+    PROBE_TYPES = PROBE_TYPE1 + PROBE_TYPE2 + PROBE_TYPE3 + PROBE_TYPE4
 
-    PROBES_TO_RUN = PROBE_TYPES * 20
-
-    def __init__(self, gui, probes_remaining):
-        super().__init__(gui)
-        self.exp_abbrev = PROBES
-
+    def __init__(self, gui, is_combination=False, exp_abbrev=None):
+        super().__init__(gui, is_combination)
         self.PROBE_TRIAL_INTERVAL = 2  # XXX Should be 10
         self.INTER_STIMULUS_TIME = 300
         self.sample_cnt = 0
 
-        if probes_remaining is None:
-            self.probes_remaining = list(DMTSWithProbes.PROBES_TO_RUN)
-        else:
-            self.probes_remaining = probes_remaining
+        self.PROBE_POT = MatchingToSampleWithProbes.PROBE_TYPES
+
+        self._create_new_probes()
 
         self.probe = None
         self.probe_stimulus1 = None
@@ -618,9 +722,8 @@ class DMTSWithProbes(DMTS):
     def start_trial(self, event=None):
         self.gui.clear()
         time_to_options = self.display_sample()
-        job1 = self.gui.root.after(time_to_options, self.gui.clear)
-        job2 = self.gui.root.after(time_to_options + DMTS_DELAY, self.display_options)
-        self.add_current_after_jobs([job1, job2])
+        job = self.gui.root.after(time_to_options, self.display_options)
+        self.add_current_after_jobs(job)
 
     def _display_probe(self, probe):
         self.gui.clear()
@@ -628,7 +731,8 @@ class DMTSWithProbes(DMTS):
         canvas2 = None
         if self.gui.use_screen2:
             canvas2 = self.gui.stimulus_window.bottom_canvas
-        time1, time2 = probe
+        stimulus1, time1 = probe[0]
+        stimulus2, time2 = probe[1]
 
         self.probe_stimulus1, self.probe_stimulus2 = random.sample(list(self.gui.image_files.keys()), 2)
         self.gui._display_image(self.probe_stimulus1, canvas1)
@@ -648,9 +752,12 @@ class DMTSWithProbes(DMTS):
         self.sample_cnt += 1
         is_probe_trial = (self.sample_cnt % self.PROBE_TRIAL_INTERVAL == 0)
         if is_probe_trial:
-            self.probe = self.probes_remaining.pop()
+            self.probe = self.probe_pot.pop()
             self.sample = None
+            if len(self.probe_pot) == 0:
+                self._create_new_probes()
             return self._display_probe(self.probe)
+
         else:
             self.probe = None
             super().display_sample()
@@ -678,39 +785,65 @@ class DMTSWithProbes(DMTS):
         else:
             super().display_options()
 
+
+
+ 
+            
+            
+
     def _canvas_clicked(self, event, canvas_key):
         if self.probe is not None:
             if self.gui.options_displayed and (canvas_key in self.current_option_canvases):
                 self.clicked_option = self.canvas_option_dict[canvas_key]
                 self.is_correct = None
+                self.write_to_file(event=event)
                 self.gui.options_displayed = False
-                self.write_to_file(event)
-                
                 self.gui.clear()
                 self.get_ready_to_start_trial()
+                self.gui.options_displayed = False
+                self.write_to_file(event)
                 return "break"
         else:
             return super()._canvas_clicked(event, canvas_key)
+        # if canvas_key in ('21', '22', '23', '31', '32', '33'):
+        #     if self.gui.options_displayed:
+        #         self.clicked_option = self.canvas_option_dict[canvas_key]
+        #         self.is_correct = (canv
+        # as_key == self.correct_canvas_key)
+        #         if self.is_correct:
+        #             self.correct_choice()    
+        #         else:
+        #             self.incorrect_choice()
+        #     self.gui.options_displayed = False
+        #     self.write_to_file(event)
+        #     return "break"
 
-    def is_sub_experiment_done(self):
-        return len(self.probes_remaining) == 0
+    def _create_new_probes(self):
+        self.probe_pot = list(self.PROBE_POT)  # Make a copy
+        random.shuffle(self.probe_pot)
 
 
-class SubExperiment1(DMTS):
+class SubExperiment1(MatchingToSample):
     def __init__(self, gui):
-        super().__init__(gui)
+        super().__init__(gui, is_combination=True, exp_abbrev="pretraining")
+        self.sub_experiment_index = 1
 
     def get_ready_to_start_trial(self):
         if self.is_sub_experiment_done():
             next_experiment = SubExperiment2(self.gui)
+            next_experiment.finished_trial_cnt = self.finished_trial_cnt
             next_experiment.get_ready_to_start_trial()
         else:
             super().get_ready_to_start_trial()
 
+    def result_filename(self):
+        return Combination1.result_filename()
 
-class SubExperiment2(DMTSWithProbes):
-    def __init__(self, gui, probes_remaining=None):
-        super().__init__(gui, probes_remaining)
+
+class SubExperiment2(MatchingToSampleWithProbes):
+    def __init__(self, gui):
+        super().__init__(gui, is_combination=True, exp_abbrev="probes")
+        self.sub_experiment_index = 2
 
         self.end_of_combination_sound_played = False
 
@@ -724,35 +857,38 @@ class SubExperiment2(DMTSWithProbes):
         else:
             super().get_ready_to_start_trial()
 
+    def result_filename(self):
+        return Combination1.result_filename()
 
-class Combination():
+
+class Combination1():
     def __init__(self, gui):
         self.gui = gui
-        filename = result_filename()
-        result_file = ResultFile(filename)
+        filename = self.result_filename()
+        self.result_file = ResultFile(filename)
 
-        exp_abbrev = result_file.get_last_value('experiment')
-        if exp_abbrev is None:
-            exp_abbrev = PRETRAINING
-
-        if exp_abbrev == PRETRAINING:
-            SubExperiment1(gui)
-        elif exp_abbrev == PROBES:
-            # Find all finished probes in result file
-            probe_times1 = result_file.get_all_values('probe_time1')
-            probe_times2 = result_file.get_all_values('probe_time2')
-            probes_finished = list()
-            for probe_time1, probe_time2 in zip(probe_times1, probe_times2):
-                if probe_time1 != "None" and probe_time2 != "None":
-                    probe = (int(probe_time1), int(probe_time2))
-                    probes_finished.append(probe)
-
-            # Remove finished probes from all probes to find remaining ones
-            probes_remaining = listdiff(list(DMTSWithProbes.PROBES_TO_RUN), probes_finished)
-
-            SubExperiment2(gui, probes_remaining)
+        sub_experiment_index = self.result_file.get_last_value('sub_experiment_index')
+        if sub_experiment_index is None:
+            sub_experiment_index = 1
         else:
-            raise Exception(f"Unknown experiment name {exp_abbrev}.")
+            sub_experiment_index = int(sub_experiment_index)
+
+        if sub_experiment_index == 1:
+            SubExperiment1(gui)
+        elif sub_experiment_index == 2:
+            SubExperiment2(gui)
+        else:
+            raise Exception(f"Unknown sub experiment index {sub_experiment_index}.")
+
+    @staticmethod
+    def result_filename():
+        experiment = Combination1._experiment_abbreviation()
+        subject = config.SUBJECT_TAG.lower()
+        return subject + "_" + experiment + ".csv"
+
+    @staticmethod
+    def _experiment_abbreviation():
+        return "Combination1"
 
 
 class ResultFile():
@@ -779,56 +915,31 @@ class ResultFile():
     def get_last_value(self, column_title):
         return ResultFile.get_last_value_static(self.path_and_file, column_title)
 
-    def get_all_values(self, column_title):
-        return ResultFile.get_all_values_static(self.path_and_file, column_title)
-
     @staticmethod
     def get_last_value_static(path_and_file, column_title):
         if ResultFile.is_empty_or_does_not_exist(path_and_file):
             return None
-        file = open(path_and_file)
-        is_title = True
-        titles = None
-        data = None
-        with file as csvfile:
-            reader = csv.reader(csvfile)
-            for r in reader:
-                if is_title:
-                    titles = r
-                    is_title = False
-                else:
-                    data = r
-        if titles is not None:
-            try:
-                title_ind = titles.index(column_title)
-            except ValueError:
-                return None
-            return data[title_ind]
         else:
-            return None
-
-    @staticmethod
-    def get_all_values_static(path_and_file, column_title):
-        if ResultFile.is_empty_or_does_not_exist(path_and_file):
-            return None
-        file = open(path_and_file)
-        is_title = True
-        titles = None
-        data = None
-
-        out = list()
-        title_ind = None
-        with file as csvfile:
-            reader = csv.reader(csvfile)
-            for row in reader:
-                if is_title:
-                    title_ind = row.index(column_title)
-                    is_title = False
-                else:
-                    if  title_ind is None:
-                        return None
-                    out.append(row[title_ind])
-        return out
+            file = open(path_and_file)
+            is_title = True
+            titles = None
+            data = None
+            with file as csvfile:
+                reader = csv.reader(csvfile)
+                for r in reader:
+                    if is_title:
+                        titles = r
+                        is_title = False
+                    else:
+                        data = r
+            if titles is not None:
+                try:
+                    title_ind = titles.index(column_title)
+                except ValueError:
+                    return None
+                return data[title_ind]
+            else:
+                return None
 
     @staticmethod
     def is_empty_or_does_not_exist(path_and_file):
@@ -838,13 +949,22 @@ class ResultFile():
             return True
 
 
-def listdiff(A, B):
-    """"Perform A - B as lists."""
-    out = list(A)  # Make a copy
-    for b in B:
-        if b in out:
-            out.remove(b)
-    return out
+def _display_shape(symbol, canvas, shape_scale, square_fraction=1, force_mid=False):
+    w = canvas.winfo_width()
+    L = w * shape_scale
+    if force_mid:
+        square_args = [(w - L) / 2, (w - L) / 2, (w - L) / 2 + L, (w - L) / 2 + L]
+    else:
+        # if square_fraction <= 1:
+        square_args = [(w - L) / 2, 0, (w - L) / 2 + L, L * square_fraction]
+        # else:
+        #     square_args = [(w - L) / 2, (w - L) / 2, (w - L) / 2 + L, (w - L) / 2 + L]
+    if symbol == 'bluesquare':
+        canvas.create_rectangle(*square_args, fill='blue', outline="", tags="shape")
+    elif symbol == 'yellowsquare':
+        canvas.create_rectangle(*square_args, fill='yellow', outline="", tags="shape")
+    else:
+        raise Exception("Unknown symbol {}".format(symbol))
 
 
 def play_correct():
@@ -898,12 +1018,12 @@ def timestamp():
     return hour + ":" + minute + ":" + second + ":" + millisecond
 
 
-def result_filename():
-    subject = config.SUBJECT_TAG.lower()
-    return "CEK2022_" + subject + ".csv"
-
-
 if __name__ == '__main__':
     gui = Gui()
-    e = Combination(gui)
-    e.gui.root.mainloop()
+    e = None
+    if config.EXPERIMENT == config.DMTS_PROBE:
+        e = Combination1(gui)
+    else:
+        print("Error: Undefined experiment name '" + config.EXPERIMENT + "'.")
+    if e is not None:
+        e.gui.root.mainloop()

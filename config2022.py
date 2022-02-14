@@ -1,5 +1,28 @@
 # The subject exposed to the experiment. Printed to the "subject" column in the result file
-SUBJECT_TAG = "barsad"
+SUBJECT_TAG = "bonobos_name"
+
+
+#######################
+# Experiment settings #
+#######################
+
+# The time (in milliseconds) that the sample is displayed in DMTS before the options appear
+DMTS_SYMBOL_SHOW_TIME = 1000
+
+# The delay between the stimuli and the options (both in pretraining and probes)
+DELAY = 200
+
+# Frequency of probe trials in probe experiment
+PROBE_TRIAL_INTERVAL = 10
+
+# Time between the two stimuli in a probe
+PROBE_INTER_STIMULUS_TIME = 300
+
+# The delay (in milliseconds) after correct answer, before the next symbol is displayed
+DELAY_AFTER_REWARD = 1000
+
+# The time (in milliseconds) for the black screen after incorrect answer
+BLACKOUT_TIME = 5000
 
 
 ####################
@@ -23,17 +46,3 @@ NEXT_BUTTON_COLOR_RGB = (255, 255, 255)
 
 # The color of the "blackout" screen after incorrect answer
 BLACKOUT_COLOR_RGB = (100, 100, 100)
-
-# The time (in milliseconds) for the black screen after incorrect answer
-BLACKOUT_TIME = 5000
-
-# The delay (in milliseconds) after correct answer, before the next symbol is displayed
-DELAY_AFTER_REWARD = 1000
-
-
-###############################
-# Matching to sample settings #
-###############################
-
-# The time (in milliseconds) that the sample is displayed in DMTS before the options appear
-SYMBOL_SHOW_TIME_MTS = 1000

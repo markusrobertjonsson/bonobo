@@ -34,6 +34,8 @@ BLACKOUT_COLOR = hex_format % config.BLACKOUT_COLOR_RGB
 
 # PARAMETERS
 DMTS_DELAY = 200
+PROBE_TRIAL_INTERVAL = 2  # XXX Should be 10
+INTER_STIMULUS_TIME = 300
 
 frame_options = dict()  # For debugging frame positioning
 # frame_options = {'highlightbackground': 'blue',
@@ -45,6 +47,19 @@ canvas_options = {'bd': 0, 'highlightthickness': 0}
 # canvas_options = {'bd': 1, 'highlightthickness': 1}
 
 TOL = 0.33  # 0.99
+
+# Some variables from experiments made global for Gui to have access to them
+GLOB = {
+    'EXP_ABBREV': None,
+    'SUCCESS_LIST': [],
+    'SUCCESS_FREQUENCY': None,
+    'PROBES_REMAINING': None
+}
+
+EXP_ABBREV = None
+SUCCESS_LIST = []
+SUCCESS_FREQUENCY: None
+PROBES_REMAINING: None
 
 
 class Gui():
@@ -63,7 +78,6 @@ class Gui():
         self.options_displayed = False
         self.blackout_displayed = False
         self.pause_screen_displayed = False
-        self.snack_time = False
 
     def _make_images(self):
         self.image_files = {'blue_star.gif': PhotoImage(file='blue_star.gif'),
@@ -114,9 +128,6 @@ class Gui():
         h = H / 4
         w = W / 3
 
-        # print(f"self.root.winfo_screenwidth()={self.root.winfo_screenwidth()}")
-        # print(f"self.root.winfo_screenheight()={self.root.winfo_screenheight()}")
-
         self.canvas_width = h
 
         self.is_fullscreen = False
@@ -139,6 +150,9 @@ class Gui():
                 self.canvas[i + j].place(relx=.5, rely=.5, anchor="center")
                 # self.canvas[i + j].pack(side=tk.BOTTOM)
                 # self.canvas[i + j].pack(anchor=tk.S)
+
+        self.label = None
+        self.label_var = None
 
         self.root.update()
         w = self.canvas['32'].winfo_width()
@@ -200,6 +214,7 @@ class Gui():
     def clear(self):
         self.set_background_color(BACKGROUND_COLOR)
         self.clear_canvases()
+        self.undisplay_info()
         if self.stimulus_window:
             self.stimulus_window.clear()
 
@@ -219,10 +234,6 @@ class Gui():
         if self.stimulus_window:
             self.stimulus_window.blackout()
 
-    def show_only_next(self):
-        self.clear()
-        self.display_next()
-
     def display_next(self):
         self.canvas['42'].create_polygon(*self.next_symbol_args, fill=NEXT_BUTTON_COLOR,
                                           outline='', width=0)
@@ -237,10 +248,21 @@ class Gui():
         if self.stimulus_window:
             self.stimulus_window.display_pause_screen()
         self._set_entire_screen_color(START_SCREEN_COLOR)
+        self.display_info()
         self.pause_screen_displayed = True
         self.blackout_displayed = False
-        self.snack_time = False
 
+    def display_info(self):
+        self.label_var = tk.StringVar()
+        self.label = tk.Label(self.root, textvariable=self.label_var, relief=tk.RAISED, anchor="w", justify=tk.LEFT)
+        self.label_var.set(current_status())
+        self.label.pack(side=tk.LEFT)
+
+    def undisplay_info(self):
+        if self.label is not None:
+            self.label.destroy()
+        self.label = None
+        self.label_var = None
 
 class Experiment():
     def __init__(self, gui):
@@ -254,7 +276,6 @@ class Experiment():
 
         filename = result_filename()
         self.result_file = ResultFile(filename)
-        self.started_trial_cnt = 0
         self.finished_trial_cnt = 0
         self.clicked_option = None
         self.tic = None
@@ -293,7 +314,6 @@ class Experiment():
     def next_clicked(self, event=None):
         if self.gui.next_displayed:
             self.gui.next_displayed = False
-            self.started_trial_cnt += 1
             self.start_trial()
 
     def space_pressed(self, event=None):
@@ -307,7 +327,6 @@ class Experiment():
 
     def get_ready_to_start_trial(self):
         self.gui.blackout_displayed = False
-        self.gui.snack_time = False
         if self.finished_trial_cnt >= config.TRIALS_BEFORE_PAUSE:
             self.gui.display_pause_screen()
             _play('space_bar_sound.wav')
@@ -317,25 +336,10 @@ class Experiment():
             self.gui.display_next()
 
     def start_trial(self, event=None):
-        pass
-        # assert(False)  # Must be overridden
+        assert(False)  # Must be overridden
 
     def is_sub_experiment_done(self):
         return False
-
-    def left_clicked(self, event=None):
-        self.clicked_option = "left"
-        return self._left_clicked(event)
-
-    def right_clicked(self, event=None):
-        self.clicked_option = "right"
-        return self._right_clicked(event)
-
-    def _left_clicked(self, event):
-        assert(False)  # Must be overridden
-
-    def _right_clicked(self, event):
-        assert(False)  # Must be overridden
 
     def update_success_frequency(self, is_correct):
         if is_correct is None:  # For example for probe trials
@@ -354,10 +358,16 @@ class Experiment():
             self.success_frequency = round(min_success, 3)
             # self.success_frequency = round(sum(self.success_list) / len(self.success_list), 3)
 
+        # GLOB['SUCCESS_FREQUENCY'] = self.success_frequency
+        # GLOB['SUCCESS_LIST'] = self.success_list
+        global SUCCESS_FREQUENCY
+        SUCCESS_FREQUENCY = self.success_frequency
+        global SUCCESS_LIST
+        SUCCESS_LIST = self.success_list
+
     def correct_choice(self):
         self.gui.clear()
         play_correct()
-        self.gui.snack_time = True
         job = self.gui.root.after(config.DELAY_AFTER_REWARD, self.get_ready_to_start_trial)
         self.add_current_after_jobs(job)
 
@@ -392,7 +402,7 @@ class Experiment():
                      ("experiment", self.exp_abbrev),
                      ("date", datestamp()),
                      ("timestamp", timestamp()),
-                     ("trial", self.started_trial_cnt),
+                     ("trial", self.finished_trial_cnt),
                      ("sample", self.sample),
                      ("probe_stimulus1", probe_stimulus1),
                      ("probe_time1", probe_time1),
@@ -447,7 +457,6 @@ class StimulusWindow():
     def display_pause_screen(self):
         self._set_entire_screen_color(START_SCREEN_COLOR)
         self.pause_screen_displayed = True
-        self.snack_time = False
 
     def set_background_color(self, color):
         # Root
@@ -598,18 +607,20 @@ class DMTSWithProbes(DMTS):
 
     PROBES_TO_RUN = PROBE_TYPES * 20
 
-    def __init__(self, gui, probes_remaining):
+    def __init__(self, gui, probes_remaining=None):
         super().__init__(gui)
         self.exp_abbrev = PROBES
 
-        self.PROBE_TRIAL_INTERVAL = 2  # XXX Should be 10
-        self.INTER_STIMULUS_TIME = 300
         self.sample_cnt = 0
 
         if probes_remaining is None:
             self.probes_remaining = list(DMTSWithProbes.PROBES_TO_RUN)
         else:
             self.probes_remaining = probes_remaining
+
+        # GLOB['PROBES_REMAINING'] = list(self.probes_remaining)
+        global PROBES_REMAINING
+        PROBES_REMAINING = self.probes_remaining
 
         self.probe = None
         self.probe_stimulus1 = None
@@ -636,25 +647,29 @@ class DMTSWithProbes(DMTS):
             self.gui.stimulus_window._display_image(self.probe_stimulus1, canvas2)
 
         job1 = self.gui.root.after(time1, self.gui.clear)
-        job2 = self.gui.root.after(time1 + self.INTER_STIMULUS_TIME, self.gui._display_image, self.probe_stimulus2, canvas1)
+        job2 = self.gui.root.after(time1 + INTER_STIMULUS_TIME, self.gui._display_image, self.probe_stimulus2, canvas1)
         job2_2 = None
         if self.gui.use_screen2:
-            job2_2 = self.gui.root.after(time1 + self.INTER_STIMULUS_TIME, self.gui._display_image, self.probe_stimulus2, canvas2)
-        job3 = self.gui.root.after(time1 + self.INTER_STIMULUS_TIME + time2, self.gui.clear)
+            job2_2 = self.gui.root.after(time1 + INTER_STIMULUS_TIME, self.gui._display_image, self.probe_stimulus2, canvas2)
+        job3 = self.gui.root.after(time1 + INTER_STIMULUS_TIME + time2, self.gui.clear)
         self.add_current_after_jobs([job1, job2, job2_2, job3])
-        return time1 + self.INTER_STIMULUS_TIME + time2
+        return time1 + INTER_STIMULUS_TIME + time2
 
     def display_sample(self):
         self.sample_cnt += 1
-        is_probe_trial = (self.sample_cnt % self.PROBE_TRIAL_INTERVAL == 0)
+        is_probe_trial = (self.sample_cnt % PROBE_TRIAL_INTERVAL == 0)
         if is_probe_trial:
             self.probe = self.probes_remaining.pop()
+            # GLOB['PROBES_REMAINING'] = list(self.probes_remaining)
+            global PROBES_REMAINING
+            PROBES_REMAINING = self.probes_remaining
+
             self.sample = None
             return self._display_probe(self.probe)
         else:
             self.probe = None
             super().display_sample()
-            return config.SYMBOL_SHOW_TIME_MTS
+            return config.SYMBOL_SHOW_TIME_MTS        
 
     def display_options(self):
         self.gui.clear()
@@ -695,6 +710,26 @@ class DMTSWithProbes(DMTS):
     def is_sub_experiment_done(self):
         return len(self.probes_remaining) == 0
 
+def current_status():
+    # if GLOB['EXP_ABBREV'] == PRETRAINING:
+    if EXP_ABBREV == PRETRAINING:
+        info_str = "Subject: " + config.SUBJECT_TAG + "\n"
+        info_str += "Sub-experiment: 1/2 (" + PRETRAINING + ") " + "\n"
+        info_str += "Success frequency: "
+        if GLOB['SUCCESS_FREQUENCY'] is None:
+            info_str += f"{20 - len(SUCCESS_LIST)} trials left until success frequency can be computed"
+        else:
+            info_str += str(GLOB['SUCCESS_FREQUENCY']) + "(must be at least 0.8 to continue to next sub-experiment)"
+    # elif GLOB['EXP_ABBREV'] == PROBES:
+    elif EXP_ABBREV == PROBES:
+        info_str = "Subject: " + config.SUBJECT_TAG + "\n"
+        info_str += "Sub-experiment: 2/2 (" + PROBES + ") " + "\n"
+        info_str += "Number of finished probes: " + str(len(DMTSWithProbes.PROBES_TO_RUN) - len(PROBES_REMAINING)) + "\n"
+        info_str += "Number of remaining probes: " + str(len(PROBES_REMAINING))
+    else:
+        raise Exception(f"Unknown experiment name {EXP_ABBREV}.")
+    return info_str
+
 
 class SubExperiment1(DMTS):
     def __init__(self, gui):
@@ -710,7 +745,7 @@ class SubExperiment1(DMTS):
 
 class SubExperiment2(DMTSWithProbes):
     def __init__(self, gui, probes_remaining=None):
-        super().__init__(gui, probes_remaining)
+        super().__init__(gui, probes_remaining=probes_remaining)
 
         self.end_of_combination_sound_played = False
 
@@ -735,22 +770,14 @@ class Combination():
         if exp_abbrev is None:
             exp_abbrev = PRETRAINING
 
+        global EXP_ABBREV
+        EXP_ABBREV = exp_abbrev
+
         if exp_abbrev == PRETRAINING:
             SubExperiment1(gui)
         elif exp_abbrev == PROBES:
-            # Find all finished probes in result file
-            probe_times1 = result_file.get_all_values('probe_time1')
-            probe_times2 = result_file.get_all_values('probe_time2')
-            probes_finished = list()
-            for probe_time1, probe_time2 in zip(probe_times1, probe_times2):
-                if probe_time1 != "None" and probe_time2 != "None":
-                    probe = (int(probe_time1), int(probe_time2))
-                    probes_finished.append(probe)
-
-            # Remove finished probes from all probes to find remaining ones
-            probes_remaining = listdiff(list(DMTSWithProbes.PROBES_TO_RUN), probes_finished)
-
-            SubExperiment2(gui, probes_remaining)
+            probes_remaining = get_probes_remaining_from_file(result_file)
+            SubExperiment2(gui, probes_remaining=probes_remaining)
         else:
             raise Exception(f"Unknown experiment name {exp_abbrev}.")
 
@@ -838,6 +865,25 @@ class ResultFile():
             return True
 
 
+def get_probes_remaining_from_file(result_file):
+    # Find all finished probes in result file
+    probe_times1 = result_file.get_all_values('probe_time1')
+    probe_times2 = result_file.get_all_values('probe_time2')
+    probes_finished = list()
+    for probe_time1, probe_time2 in zip(probe_times1, probe_times2):
+        if probe_time1 != "None" and probe_time2 != "None":
+            probe = (int(probe_time1), int(probe_time2))
+            probes_finished.append(probe)
+
+    # Remove finished probes from all probes to find remaining ones
+    probes_remaining = listdiff(list(DMTSWithProbes.PROBES_TO_RUN), probes_finished)
+
+    global PROBES_REMAINING
+    PROBES_REMAINING = probes_remaining
+
+    return probes_remaining
+
+
 def listdiff(A, B):
     """"Perform A - B as lists."""
     out = list(A)  # Make a copy
@@ -906,4 +952,4 @@ def result_filename():
 if __name__ == '__main__':
     gui = Gui()
     e = Combination(gui)
-    e.gui.root.mainloop()
+    gui.root.mainloop()

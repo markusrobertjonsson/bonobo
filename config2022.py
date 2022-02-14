@@ -1,5 +1,5 @@
 # The subject exposed to the experiment. Printed to the "subject" column in the result file
-SUBJECT_TAG = "barsa"
+SUBJECT_TAG = "barsad"
 
 
 ####################

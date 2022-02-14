@@ -10,7 +10,7 @@ git clone <repo-url>
 
 or download zip-file from https://github.com/markusrobertjonsson/bonobo/ and unzip.
 
-## Running The App
+## Running the experiment
 
 ```bash
 python bonobo.py

@@ -1,7 +1,7 @@
 import tkinter as tk
 import random
 import subprocess
-import config2022 as config
+import config
 import csv
 import time
 import os

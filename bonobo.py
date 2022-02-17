@@ -41,7 +41,7 @@ frame_options = dict()  # For debugging frame positioning
 canvas_options = {'bd': 0, 'highlightthickness': 0}
 # canvas_options = {'bd': 1, 'highlightthickness': 1}
 
-TOL = 0.99
+TOL = 0.5  # XXX 0.99
 
 # Some variables from experiments made global for Gui to have access to them
 EXP_ABBREV = None
@@ -69,26 +69,10 @@ class Gui():
         self.pause_screen_displayed = False
 
     def _make_images(self):
-        self.image_files = {'blue_star.gif': PhotoImage(file='blue_star.gif'),
-                            'yellow_circle.gif': PhotoImage(file='yellow_circle.gif'),
-                            'white_star.gif': PhotoImage(file='white_star.gif'),
-                            'white_circle.gif': PhotoImage(file='white_circle.gif'),
-                            'circle.gif': PhotoImage(file='circle.gif'),
-                            'diamond.gif': PhotoImage(file='diamond.gif'),
-                            'star.gif': PhotoImage(file='star.gif'),
-                            'balls.gif': PhotoImage(file='balls.gif'),
-                            'blue_circles.gif': PhotoImage(file='blue_circles.gif'),
-                            'yellow_diamond.gif': PhotoImage(file='yellow_diamond.gif'),
-                            'green_circles.gif': PhotoImage(file='green_circles.gif'),
-                            'red_circles.gif': PhotoImage(file='red_circles.gif'),
-                            'red_diamond.gif': PhotoImage(file='red_diamond.gif'),
-                            'horizontal_lines.gif': PhotoImage(file='horizontal_lines.gif'),
-                            'vertical_lines.gif': PhotoImage(file='vertical_lines.gif'),
-                            'horizontal_button.gif': PhotoImage(file='horizontal_button.gif'),
-                            'vertical_button.gif': PhotoImage(file='vertical_button.gif'),
-                            'pink_circle.gif': PhotoImage(file='pink_circle.gif'),
-                            'happy_face.gif': PhotoImage(file='happy_face.gif'),
-                            'sad_face.gif': PhotoImage(file='sad_face.gif')}
+        images = ['Ball', 'Brushes', 'GreenCircle', 'Mug', 'Star', 'Basket', 'Car', 'Hands',
+                  'RedStar', 'Sun', 'Bike', 'Chair', 'House', 'Scissors', 'Tree', 'Bottle',
+                  'Fan', 'Leaf', 'Shoe', 'Web']
+        self.image_files = {image: PhotoImage(file=image + '.png') for image in images}
         
         # Just to make sure there are 20 after meddling with the dict above
         assert(len(self.image_files) == 20)
@@ -244,7 +228,7 @@ class Gui():
     def display_info(self):
         self.label_var = tk.StringVar()
         self.label = tk.Label(self.root, textvariable=self.label_var, relief=tk.RAISED, anchor="c", justify=tk.LEFT)
-        self.label.config(font=("Courier", 20))
+        self.label.config(font=("Courier", 18))
         self.label_var.set(current_status())
         self.label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
         # self.label.pack(expand=True, fill="none")
@@ -271,6 +255,7 @@ class Experiment():
         self.result_file = ResultFile(filename)
         self.finished_trial_cnt = FINISHED_TRIALS_FROM_FILE
         self.clicked_option = None
+        self.clicked_canvas = None
         self.tic = None
 
         # Current self.gui.root.after jobs. Stored here to be able to cancel them in space_pressed.
@@ -299,6 +284,7 @@ class Experiment():
         self.current_after_jobs = []
 
     def canvas_clicked(self, event, canvas_key):
+        self.clicked_canvas = canvas_key
         if canvas_key == '42':
             return self.next_clicked(event)
         else:
@@ -334,10 +320,10 @@ class Experiment():
     def is_sub_experiment_done(self):
         return False
 
-    def update_success_frequency(self, is_correct):
-        if is_correct is None:  # For example for probe trials
+    def update_success_frequency(self):
+        if self.is_correct is None:  # For example for probe trials
             return
-        self.success_list.append(int(is_correct))
+        self.success_list.append(int(self.is_correct))
         # if len(self.success_list) > 5:  # XXX
         if len(self.success_list) > 20:
             self.success_list.pop(0)
@@ -368,7 +354,7 @@ class Experiment():
         job = self.gui.root.after(config.BLACKOUT_TIME, self.get_ready_to_start_trial)
         self.add_current_after_jobs(job)
 
-    def write_to_file(self, event):
+    def write_to_file(self):
         self.finished_trial_cnt += 1
 
         response_time = None
@@ -387,10 +373,10 @@ class Experiment():
             probe_time1 = None
             probe_time2 = None
 
-        self.update_success_frequency(self.is_correct)
+        self.update_success_frequency()
         file_data = [("freq_correct", self.success_frequency),
                      ("subject", config.SUBJECT_TAG),
-                     ("experiment", self.exp_abbrev),
+                     ("experiment", EXP_ABBREV),
                      ("date", datestamp()),
                      ("timestamp", timestamp()),
                      ("trial", self.finished_trial_cnt),
@@ -400,6 +386,7 @@ class Experiment():
                      ("probe_stimulus2", probe_stimulus2),
                      ("probe_time2", probe_time2),
                      ("response", self.clicked_option),
+                     ("response_pos", self.clicked_canvas),
                      ("is_correct", self.is_correct),
                      ("response_time", response_time)]
 
@@ -507,7 +494,8 @@ class DMTS(Experiment):
         super().__init__(gui)
 
         # Experiment abbreviation
-        self.exp_abbrev = PRETRAINING
+        global EXP_ABBREV
+        EXP_ABBREV = PRETRAINING
 
         # The key for the canvas containing the correct option
         self.correct_canvas_key = None
@@ -576,7 +564,7 @@ class DMTS(Experiment):
             else:
                 self.incorrect_choice()
             self.gui.options_displayed = False
-            self.write_to_file(event)
+            self.write_to_file()
             return "break"
 
     def is_sub_experiment_done(self):
@@ -600,9 +588,9 @@ class DMTSWithProbes(DMTS):
 
     def __init__(self, gui, probes_remaining=None):
         super().__init__(gui)
-        self.exp_abbrev = PROBES
 
-        self.sample_cnt = 0
+        global EXP_ABBREV
+        EXP_ABBREV = PROBES
 
         if probes_remaining is None:
             self.probes_remaining = list(DMTSWithProbes.PROBES_TO_RUN)
@@ -611,6 +599,19 @@ class DMTSWithProbes(DMTS):
 
         global PROBES_REMAINING
         PROBES_REMAINING = self.probes_remaining
+
+        # Create self.probe_trials - list of probe trial numbers
+        self.probe_trials = list()
+        current_batch_of_ten_index = self.finished_trial_cnt // 10
+        n_finished_probes = len(DMTSWithProbes.PROBES_TO_RUN) - len(self.probes_remaining)
+        probe_in_current_batch_done = (n_finished_probes == current_batch_of_ten_index + 1)
+        if not probe_in_current_batch_done:
+            trials_left_in_current_batch = (current_batch_of_ten_index + 1) * 10 - self.finished_trial_cnt - 1
+            self.probe_trials.append(self.finished_trial_cnt + random.randint(1, trials_left_in_current_batch))
+        for i in range(current_batch_of_ten_index + 1, 120):
+            trial_within_batch = random.randint(0, 9)
+            self.probe_trials.append(10 * i + trial_within_batch)
+        # assert(len(self.probe_trials) == len(self.probes_remaining))
 
         self.probe = None
         self.probe_stimulus1 = None
@@ -646,8 +647,7 @@ class DMTSWithProbes(DMTS):
         return time1 + config.PROBE_INTER_STIMULUS_TIME + time2
 
     def display_sample(self):
-        self.sample_cnt += 1
-        is_probe_trial = (self.sample_cnt % config.PROBE_TRIAL_INTERVAL == 0)
+        is_probe_trial = (self.finished_trial_cnt + 1 in self.probe_trials)
         if is_probe_trial:
             self.probe = self.probes_remaining.pop()
             global PROBES_REMAINING
@@ -688,7 +688,7 @@ class DMTSWithProbes(DMTS):
                 self.clicked_option = self.canvas_option_dict[canvas_key]
                 self.is_correct = None
                 self.gui.options_displayed = False
-                self.write_to_file(event)
+                self.write_to_file()
                 
                 self.gui.clear()
                 self.get_ready_to_start_trial()

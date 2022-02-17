@@ -41,7 +41,7 @@ frame_options = dict()  # For debugging frame positioning
 canvas_options = {'bd': 0, 'highlightthickness': 0}
 # canvas_options = {'bd': 1, 'highlightthickness': 1}
 
-TOL = 0.5  # XXX 0.99
+TOL = 0.99
 
 # Some variables from experiments made global for Gui to have access to them
 EXP_ABBREV = None

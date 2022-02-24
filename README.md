@@ -12,17 +12,24 @@ or download zip-file from https://github.com/markusrobertjonsson/bonobo/ and unz
 
 ## Running the experiment
 
+For Kanzi:
 ```bash
-python bonobo.py
+python kanzi.py
+```
+
+For Teco:
+```bash
+python teco.py
 ```
 
 ## Instructions
 
-- Configurations are in `config.py` such as the bonobo's name
-- Output is written to `result_files/CEK2022_[bonobo_name]`, i.e. there is one output file per individual
+- Output from kanzi.py is written to `result_files/CEK2022_kanzi.csv`
+- Output from teco.py is written to `result_files/CEK2022_teco.csv`
 - &lt;F11> toggles full screen
 - &lt;F10> toggles visibility of mouse pointer
 - &lt;Space> pauses the experiment and a pause screen with current experiment status is displayed; another space resumes it
+- The pause screen contains information about how many trials are left (in pretraining part) and how many probe trials are left (in the probe phase) 
 - If an experiment is aborted it will be resumed from where it was aborted when restarted. However, in the pretraining, the score of the last 20 trials is not kept.
 - The pretraining is over when correct response is >=80% within two consecutive sets of 10 trials. Then the probe phase starts.
 - The probe phase is over when 120 probe trials have been run. Every 10 trial in the probe phase is a probe trial.

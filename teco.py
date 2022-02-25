@@ -414,6 +414,11 @@ class Experiment():
             probe_time1 = None
             probe_time2 = None
 
+        symbol_in_canvas = {'21': None, '22': None, '23': None, '31': None, '32': None, '33': None}
+        for key in symbol_in_canvas:
+            if key in self.canvas_option_dict:
+                symbol_in_canvas[key] = self.canvas_option_dict[key]
+
         self.update_success_frequency()
         file_data = [("freq_correct", self.success_frequency),
                      ("subject", SUBJECT_TAG),
@@ -426,6 +431,12 @@ class Experiment():
                      ("probe_time1", probe_time1),
                      ("probe_stimulus2", probe_stimulus2),
                      ("probe_time2", probe_time2),
+                     ("option21", symbol_in_canvas['21']),
+                     ("option22", symbol_in_canvas['22']),
+                     ("option23", symbol_in_canvas['23']),
+                     ("option31", symbol_in_canvas['31']),
+                     ("option32", symbol_in_canvas['32']),
+                     ("option33", symbol_in_canvas['33']),
                      ("response", self.clicked_option),
                      ("response_pos", self.clicked_canvas),
                      ("is_correct", self.is_correct),

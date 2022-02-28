@@ -27,7 +27,7 @@ python teco.py
 - Output from kanzi.py is written to `result_files/CEK2022_kanzi.csv`
 - Output from teco.py is written to `result_files/CEK2022_teco.csv`
 - &lt;F11> toggles full screen
-- &lt;F10> toggles visibility of mouse pointer
+- &lt;F10> toggles visibility of mouse pointer. The mouse may need to be moved before the effect of the visibility change is seen.
 - &lt;Space> pauses the experiment and a pause screen with current experiment status is displayed; another space resumes it
 - The pause screen contains information about how many trials are left (in pretraining part) and how many probe trials are left (in the probe phase) 
 - If an experiment is aborted (by closing the window) it will be resumed from where it was aborted when restarted. However, in the pretraining, the score of the last 20 trials is not kept.

@@ -45,7 +45,7 @@ def set_config():
     # Initial visibility of mouse pointer (False/True). Can be toggled with <F10>.
     config['HIDE_MOUSE_POINTER'] = False
     # The number of trials before the start screen appears automatically
-    config['TRIALS_BEFORE_PAUSE'] = 60
+    config['TRIALS_BEFORE_PAUSE'] = 120
     # The start screen
     config['START_SCREEN_COLOR_RGB'] = (255, 192, 203)
     # The background screen color in red, green, blue (each ranging from 0 to 255)
@@ -90,7 +90,8 @@ SUCCESS_LIST = []
 SUCCESS_FREQUENCY = None
 PROBES_REMAINING = None
 FINISHED_TRIALS_FROM_FILE = 0
-
+SESSION_TRIAL_CNT = 0
+FINISHED_TRIAL_CNT = 0
 
 class Gui():
     def __init__(self, use_screen2=False):
@@ -295,6 +296,11 @@ class Experiment():
         filename = result_filename()
         self.result_file = ResultFile(filename)
         self.finished_trial_cnt = FINISHED_TRIALS_FROM_FILE
+
+        global FINISHED_TRIAL_CNT
+        FINISHED_TRIAL_CNT = self.finished_trial_cnt
+
+        self.session_trial_cnt = 0
         self.clicked_option = None
         self.clicked_canvas = None
         self.tic = None
@@ -347,13 +353,13 @@ class Experiment():
 
     def get_ready_to_start_trial(self):
         self.gui.blackout_displayed = False
-        # if self.finished_trial_cnt >= config['TRIALS_BEFORE_PAUSE']:
-        #     self.gui.display_pause_screen()
-        #     _play('space_bar_sound.wav')
-        #     self.finished_trial_cnt = 0
-        # else:
-        self.gui.clear()
-        self.gui.display_next()
+        if self.session_trial_cnt >= config['TRIALS_BEFORE_PAUSE']:
+            self.session_trial_cnt = 0
+            self.gui.display_pause_screen()
+            _play('space_bar_sound.wav')
+        else:
+            self.gui.clear()
+            self.gui.display_next()
 
     def start_trial(self, event=None):
         assert(False)  # Must be overridden
@@ -397,6 +403,12 @@ class Experiment():
 
     def write_to_file(self):
         self.finished_trial_cnt += 1
+        self.session_trial_cnt += 1
+
+        global FINISHED_TRIAL_CNT
+        global SESSION_TRIAL_CNT
+        FINISHED_TRIAL_CNT = self.finished_trial_cnt
+        SESSION_TRIAL_CNT = self.session_trial_cnt
 
         response_time = None
         if self.tic is not None:
@@ -751,10 +763,13 @@ class DMTSWithProbes(DMTS):
     def is_sub_experiment_done(self):
         return len(self.probes_remaining) == 0
 
+
 def current_status():
     if EXP_ABBREV == PRETRAINING:
         info_str = "Subject: " + SUBJECT_TAG + "\n"
         info_str += "Sub-experiment: 1/2 (" + PRETRAINING + ") " + "\n"
+        info_str += "Number of finished trials this session: " + str(SESSION_TRIAL_CNT) + "\n"
+        info_str += "Number of finished trials in total: " + str(FINISHED_TRIAL_CNT) + "\n"
         info_str += "Success frequency: "
         if SUCCESS_FREQUENCY is None:
             info_str += f"{20 - len(SUCCESS_LIST)} trials left until success frequency can be computed"
@@ -763,6 +778,8 @@ def current_status():
     elif EXP_ABBREV == PROBES:
         info_str = "Subject: " + SUBJECT_TAG + "\n"
         info_str += "Sub-experiment: 2/2 (" + PROBES + ") " + "\n"
+        info_str += "Number of finished trials this session: " + str(SESSION_TRIAL_CNT) + "\n"
+        info_str += "Number of finished trials in total: " + str(FINISHED_TRIAL_CNT) + "\n"
         info_str += "Number of finished probes: " + str(len(DMTSWithProbes.PROBES_TO_RUN) - len(PROBES_REMAINING)) + "\n"
         info_str += "Number of remaining probes: " + str(len(PROBES_REMAINING))
     else:
@@ -793,7 +810,7 @@ class SubExperiment2(DMTSWithProbes):
             self.gui.display_pause_screen()
 
             if not self.end_of_combination_sound_played:
-                self.gui.root.after(3000, _play, 'end_of_combination.wav')
+                self.gui.root.after(2000, _play, 'end_of_combination.wav')
             self.end_of_combination_sound_played = True
         else:
             super().get_ready_to_start_trial()

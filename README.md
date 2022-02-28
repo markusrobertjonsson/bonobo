@@ -5,7 +5,7 @@
 Make sure you have Python version 3.6 or newer installed.
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/markusrobertjonsson/bonobo.git
 ```
 
 or download zip-file from https://github.com/markusrobertjonsson/bonobo/ and unzip.

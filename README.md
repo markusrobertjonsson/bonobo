@@ -10,7 +10,7 @@ git clone https://github.com/markusrobertjonsson/bonobo.git
 
 or download zip-file from https://github.com/markusrobertjonsson/bonobo/ and unzip.
 
-## Running the experiment
+## Running the experiments in the manuscript "A test of memory for stimulus sequences in great apes"
 
 For Kanzi:
 ```bash
@@ -22,10 +22,23 @@ For Teco:
 python teco.py
 ```
 
+For the sequence discrimination experiments for bonobos:
+```bash
+python bonobo_seqdis.py
+```
+
+For the experiments on human subjects:
+```bash
+python human.py
+```
+
+
 ## Instructions
 
 - Output from kanzi.py is written to `result_files/CEK2022_kanzi.csv`
 - Output from teco.py is written to `result_files/CEK2022_teco.csv`
+- Output from bonobo_seqdis.py is written to `result_files/bonobo_name_SeqDis_[date].csv`
+- Output from human.py is written to `result_files/subjectn_expm[date and time].csv`
 - &lt;F11> toggles full screen
 - &lt;F10> toggles visibility of mouse pointer. The mouse may need to be moved before the effect of the visibility change is seen.
 - &lt;Space> pauses the experiment and a pause screen with current experiment status is displayed; another space resumes it

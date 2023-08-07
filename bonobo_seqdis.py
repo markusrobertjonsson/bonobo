@@ -150,8 +150,8 @@ class Discrimination():
         self.display_pause_screen()
 
     def _make_images(self):
-        self.image_files = {'horizontal_lines.gif': PhotoImage(file='horizontal_lines.gif'),
-                            'vertical_lines.gif': PhotoImage(file='vertical_lines.gif')}
+        self.image_files = {'horizontal_lines.gif': PhotoImage(file='./images/horizontal_lines.gif'),
+                            'vertical_lines.gif': PhotoImage(file='./images/vertical_lines.gif')}
         self.root.update()
         for key, image_file in self.image_files.items():
             # scaling_factor = ceil(image_file.width() / self.left_canvas.winfo_width())
@@ -579,16 +579,17 @@ def play_incorrect():
 
 
 def _play(filename):
+    full_filename = "./sounds/" + filename
     if use_simpleaudio:
-        wave_obj = simpleaudio.WaveObject.from_wave_file(filename)
+        wave_obj = simpleaudio.WaveObject.from_wave_file(full_filename)
         wave_obj.play()
         # play_obj = wave_obj.play()
         # play_obj.wait_done()
     else:
         if platform == "darwin":  # OSX
-            subprocess.call(['afplay', filename])
+            subprocess.call(['afplay', full_filename])
         elif platform == "win32":  # Windows
-            winsound.PlaySound(filename, winsound.SND_FILENAME)
+            winsound.PlaySound(full_filename, winsound.SND_FILENAME)
         else:
             print('\a')  # beep
 

@@ -114,7 +114,7 @@ class Gui():
         images = ['Ball', 'Brushes', 'GreenCircle', 'Mug', 'Star', 'Basket', 'Car', 'Hands',
                   'RedStar', 'Sun', 'Bike', 'Chair', 'House', 'Scissors', 'Tree', 'Bottle',
                   'Fan', 'Leaf', 'Shoe', 'Web']
-        self.image_files = {image: PhotoImage(file=image + '.png') for image in images}
+        self.image_files = {image: PhotoImage(file='./images/' + image + '.png') for image in images}
         
         # Just to make sure there are 20 after meddling with the dict above
         assert(len(self.image_files) == 20)

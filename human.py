@@ -148,25 +148,25 @@ class Gui():
         self.subject_id = 1
 
     def _make_images(self):
-        self.image_files = {'blue_star.gif': PhotoImage(file='blue_star.gif'),
-                            'yellow_circle.gif': PhotoImage(file='yellow_circle.gif'),
-                            'white_star.gif': PhotoImage(file='white_star.gif'),
-                            'white_circle.gif': PhotoImage(file='white_circle.gif'),
-                            'circle.gif': PhotoImage(file='circle.gif'),
-                            'diamond.gif': PhotoImage(file='diamond.gif'),
-                            'star.gif': PhotoImage(file='star.gif'),
-                            'balls.gif': PhotoImage(file='balls.gif'),
-                            'blue_circles.gif': PhotoImage(file='blue_circles.gif'),
-                            'yellow_diamond.gif': PhotoImage(file='yellow_diamond.gif'),
-                            'green_circles.gif': PhotoImage(file='green_circles.gif'),
-                            'red_circles.gif': PhotoImage(file='red_circles.gif'),
-                            'red_diamond.gif': PhotoImage(file='red_diamond.gif'),
-                            'horizontal_lines.gif': PhotoImage(file='horizontal_lines.gif'),
-                            'vertical_lines.gif': PhotoImage(file='vertical_lines.gif'),
-                            'horizontal_button.gif': PhotoImage(file='horizontal_button.gif'),
-                            'vertical_button.gif': PhotoImage(file='vertical_button.gif'),
-                            'happy_face.gif': PhotoImage(file='happy_face.gif'),
-                            'sad_face.gif': PhotoImage(file='sad_face.gif')}
+        self.image_files = {'blue_star.gif': PhotoImage(file='./images/blue_star.gif'),
+                            'yellow_circle.gif': PhotoImage(file='./images/yellow_circle.gif'),
+                            'white_star.gif': PhotoImage(file='./images/white_star.gif'),
+                            'white_circle.gif': PhotoImage(file='./images/white_circle.gif'),
+                            'circle.gif': PhotoImage(file='./images/circle.gif'),
+                            'diamond.gif': PhotoImage(file='./images/diamond.gif'),
+                            'star.gif': PhotoImage(file='./images/star.gif'),
+                            'balls.gif': PhotoImage(file='./images/balls.gif'),
+                            'blue_circles.gif': PhotoImage(file='./images/blue_circles.gif'),
+                            'yellow_diamond.gif': PhotoImage(file='./images/yellow_diamond.gif'),
+                            'green_circles.gif': PhotoImage(file='./images/green_circles.gif'),
+                            'red_circles.gif': PhotoImage(file='./images/red_circles.gif'),
+                            'red_diamond.gif': PhotoImage(file='./images/red_diamond.gif'),
+                            'horizontal_lines.gif': PhotoImage(file='./images/horizontal_lines.gif'),
+                            'vertical_lines.gif': PhotoImage(file='./images/vertical_lines.gif'),
+                            'horizontal_button.gif': PhotoImage(file='./images/horizontal_button.gif'),
+                            'vertical_button.gif': PhotoImage(file='./images/vertical_button.gif'),
+                            'happy_face.gif': PhotoImage(file='./images/happy_face.gif'),
+                            'sad_face.gif': PhotoImage(file='./images/sad_face.gif')}
         self.root.update()
         for key, image_file in self.image_files.items():
             # scaling_factor = ceil(image_file.width() / self.left_canvas.winfo_width())
@@ -1055,16 +1055,17 @@ def play_incorrect():
 
 
 def _play(filename):
+    full_filename = "./sounds/" + filename
     if use_simpleaudio:
-        wave_obj = simpleaudio.WaveObject.from_wave_file(filename)
+        wave_obj = simpleaudio.WaveObject.from_wave_file(full_filename)
         wave_obj.play()
         # play_obj = wave_obj.play()
         # play_obj.wait_done()
     else:
         if platform == "darwin":  # OSX
-            subprocess.call(['afplay', filename])
+            subprocess.call(['afplay', full_filename])
         elif platform == "win32":  # Windows
-            winsound.PlaySound(filename, winsound.SND_FILENAME)
+            winsound.PlaySound(full_filename, winsound.SND_FILENAME)
         else:
             print('\a')  # beep
 

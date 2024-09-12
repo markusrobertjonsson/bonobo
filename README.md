@@ -5,10 +5,11 @@
 Make sure you have Python version 3.6 or newer installed.
 
 ```bash
-git clone https://github.com/markusrobertjonsson/bonobo.git
+git clone --depth 1 --branch v1.0 <repo>
 ```
 
-or download zip-file from https://github.com/markusrobertjonsson/bonobo/ and unzip.
+or download zip-file from https://github.com/markusrobertjonsson/bonobo/archive/refs/tags/v1.0.zip and unzip.
+
 
 ## Running the experiments in the manuscript "A test of memory for stimulus sequences in great apes"
 

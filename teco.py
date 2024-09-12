@@ -114,7 +114,7 @@ class Gui():
         images = ['Ball', 'Brushes', 'GreenCircle', 'Mug', 'Star', 'Basket', 'Car', 'Hands',
                   'RedStar', 'Sun', 'Bike', 'Chair', 'House', 'Scissors', 'Tree', 'Bottle',
                   'Fan', 'Leaf', 'Shoe', 'Web']
-        self.image_files = {image: PhotoImage(file=image + '.png') for image in images}
+        self.image_files = {image: PhotoImage(file='/images' + image + '.png') for image in images}
         
         # Just to make sure there are 20 after meddling with the dict above
         assert(len(self.image_files) == 20)
@@ -963,16 +963,17 @@ def play_incorrect():
 
 
 def _play(filename):
+    full_filename = "./sounds/" + filename
     if use_simpleaudio:
-        wave_obj = simpleaudio.WaveObject.from_wave_file(filename)
+        wave_obj = simpleaudio.WaveObject.from_wave_file(full_filename)
         wave_obj.play()
         # play_obj = wave_obj.play()
         # play_obj.wait_done()
     else:
         if platform == "darwin":  # OSX
-            subprocess.call(['afplay', filename])
+            subprocess.call(['afplay', full_filename])
         elif platform == "win32":  # Windows
-            winsound.PlaySound(filename, winsound.SND_FILENAME)
+            winsound.PlaySound(full_filename, winsound.SND_FILENAME)
         else:
             print('\a')  # beep
 
